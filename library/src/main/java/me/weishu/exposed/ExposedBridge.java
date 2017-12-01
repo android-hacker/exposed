@@ -1,17 +1,30 @@
 package me.weishu.exposed;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.os.Build;
+import android.text.TextUtils;
+import android.util.Log;
+import android.util.Pair;
 
 import com.taobao.android.dexposed.DexposedBridge;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Member;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import dalvik.system.DexClassLoader;
 import de.robv.android.xposed.ExposedHelper;
@@ -20,20 +33,31 @@ import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static com.taobao.android.dexposed.DexposedBridge.log;
 
-/**
- * Created by weishu on 17/11/30.
- */
 public class ExposedBridge {
 
+    private static final String TAG = "ExposedBridge";
+
+    private static final String XPOSED_INSTALL_PACKAGE = "de.robv.android.xposed.installer";
+
+    @SuppressLint("SdCardPath")
+    private static final String BASE_DIR_LEGACY = "/data/data/de.robv.android.xposed.installer/";
+
+    public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
+            ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
+
+    private static Pair<String, Set<String>> lastModuleList = Pair.create(null, null);
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
     private static ClassLoader xposedClassLoader;
 
-    public static void initForProcess(String processName) {
-        ExposedHelper.initSeLinux(processName);
+    public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        ExposedHelper.initSeLinux(applicationInfo.processName);
+
+        initForXposedInstaller(context, applicationInfo, appClassLoader);
     }
 
     public static synchronized ClassLoader getAppClassLoaderWithXposed(ClassLoader appClassLoader) {
@@ -57,6 +81,16 @@ public class ExposedBridge {
 
     public static void loadModule(String moduleApkPath, String moduleOdexDir, String moduleLibPath,
                                   ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
+
+        boolean needCheck = loadModuleConfig(currentApplicationInfo);
+
+//        if (needCheck) {
+//            if (!lastModuleList.second.contains(moduleApkPath)) {
+//                log("module:" + moduleApkPath + " is disabled, ignore");
+//                return;
+//            }
+//        }
+
         log("Loading modules from " + moduleApkPath);
 
         if (!new File(moduleApkPath).exists()) {
@@ -96,6 +130,7 @@ public class ExposedBridge {
 
                     final Object moduleInstance = moduleClass.newInstance();
                     if (moduleInstance instanceof IXposedHookZygoteInit) {
+                        // TODO: 17/12/1 ?
 //                            IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
 //                            param.modulePath = apk;
 //                            param.startsSystemServer = startsSystemServer;
@@ -118,6 +153,7 @@ public class ExposedBridge {
 
                     if (moduleInstance instanceof IXposedHookInitPackageResources) {
                         // hookInitPackageResources(new IXposedHookInitPackageResources.Wrapper((IXposedHookInitPackageResources) moduleInstance));
+                        // TODO: 17/12/1 Support Resource hook
                     }
                 } catch (Throwable t) {
                     log(t);
@@ -137,4 +173,135 @@ public class ExposedBridge {
         final com.taobao.android.dexposed.XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, new XC_MethodHookX2Dx(callback));
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
     }
+
+
+    private static void initForXposedInstaller(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        if (!XPOSED_INSTALL_PACKAGE.equals(applicationInfo.packageName)) {
+            return;
+        }
+
+        // XposedInstaller
+        final int fakeXposedVersion = 88;
+        final File xposedProp = context.getFileStreamPath("xposed_prop");
+        if (!xposedProp.exists()) {
+            Properties properties = new Properties();
+            properties.put("version", String.valueOf(fakeXposedVersion));
+            properties.put("arch", Build.CPU_ABI);
+            properties.put("minsdk", "52");
+            properties.put("maxsdk", "88");
+
+            try {
+                properties.store(new FileOutputStream(xposedProp), null);
+            } catch (IOException e) {
+                log("write property file failed");
+            }
+        }
+
+        final Class<?> xposedApp = XposedHelpers.findClass("de.robv.android.xposed.installer.XposedApp", appClassLoader);
+        final Object xposed_prop_files = XposedHelpers.getStaticObjectField(xposedApp, "XPOSED_PROP_FILES");
+        final int length = Array.getLength(xposed_prop_files);
+        String xposedPropPath = xposedProp.getPath();
+        for (int i = 0; i < length; i++) {
+            Array.set(xposed_prop_files, i, xposedPropPath);
+        }
+
+        DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                param.setResult(fakeXposedVersion);
+            }
+        });
+        DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                param.setResult(fakeXposedVersion);
+            }
+        });
+
+        final Constructor<?> fileConstructor1 = XposedHelpers.findConstructorExact(File.class, String.class);
+        final Constructor<?> fileConstructor2 = XposedHelpers.findConstructorExact(File.class, String.class, String.class);
+        final String dataDir = applicationInfo.dataDir;
+        DexposedBridge.hookMethod(fileConstructor1, new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                final Object path = param.args[0];
+                if (BASE_DIR.equals(path)) {
+                    log("found xposed base dir, redirect");
+                    param.args[0] = dataDir;
+                }
+            }
+        });
+        DexposedBridge.hookMethod(fileConstructor2, new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                final Object path = param.args[0];
+                if (BASE_DIR.equals(path)) {
+                    log("found xposed base dir, redirect");
+                    param.args[0] = dataDir;
+                }
+            }
+        });
+    }
+
+    /**
+     * try read module config fules.
+     * @param currentApplicationInfo currentApplicationInfo
+     * @return is need check module
+     */
+    private static boolean loadModuleConfig(ApplicationInfo currentApplicationInfo) {
+
+        if (lastModuleList != null && TextUtils.equals(lastModuleList.first, currentApplicationInfo.processName) && lastModuleList.second != null) {
+            Log.d(TAG, "lastmodule valid, do not load");
+            return true; // xposed installer has config file, and has already loaded for this process, return.
+        }
+
+        // load modules
+        final String rootDir = new File(currentApplicationInfo.dataDir).getParent();
+        final File xposedInstallerDir = new File(rootDir, XPOSED_INSTALL_PACKAGE);
+        if (!xposedInstallerDir.exists()) {
+            Log.d(TAG, "XposedInstaller not installed, ignore.");
+            return false; // xposed installer not enabled, must load all.
+        }
+
+        final File modiles = new File(xposedInstallerDir, "conf/modules.list");
+        if (!modiles.exists()) {
+            Log.d(TAG, "xposed installer's modules not exist, ignore.");
+            return false; // xposed installer config file not exist, load all.
+        }
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(modiles));
+            String line = null;
+            Set<String> moduleSet = new HashSet<>();
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("#")) {
+                    continue;
+                }
+                if (line.isEmpty()) {
+                    continue;
+                }
+                moduleSet.add(line);
+            }
+
+            lastModuleList = Pair.create(currentApplicationInfo.processName, moduleSet);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }
+
