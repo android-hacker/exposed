@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Exposed.iml" filepath="$PROJECT_DIR$/Exposed.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" filepath="$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xposed-api/xposed-api.iml" filepath="$PROJECT_DIR$/xposed-api/xposed-api.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,53 @@
+import com.android.builder.core.BuilderConstants
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
+    defaultConfig {
+        applicationId "exposed.weishu.me.exposed"
+        minSdkVersion 14
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+
+}
+
+task generateStubs(type: Javadoc, dependsOn: 'compileReleaseSources') {
+    source = file('src/main/java')
+    ext.stubsDir = "$buildDir/api/stub-sources"
+    outputs.dir ext.stubsDir
+    title = null
+
+    options {
+        doclet = 'com.google.doclava.Doclava'
+        docletpath = fileTree(dir: 'doclib', include: '**/*.jar').asType(List)
+        jFlags '-Dignore.symbol.file'
+        addBooleanOption 'nodocs', true
+        addFileOption 'stubs', file(ext.stubsDir)
+        addFileOption 'api', file('doclib/api/current.txt')
+        addBooleanOption 'hide 111', true
+        addBooleanOption 'hide 113', true
+        addBooleanOption 'hidePackage xposed.dummy', true
+    }
+}
+
+task compileStubs(type: JavaCompile, dependsOn: 'generateStubs') {
+    source = fileTree(generateStubs.ext.stubsDir)
+    destinationDir = file("$buildDir/api/stub-classes")
+    options.compilerArgs += '-XDsuppressNotes'
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
