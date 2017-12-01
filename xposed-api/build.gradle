@@ -93,15 +93,17 @@ dependencies {
     compile 'me.weishu:epic:0.1.4'
 }
 
-apply plugin: 'com.novoda.bintray-release'
+version = '0.1.4'
 
-publish {
-    userOrg = 'twsxtd'//
-    groupId = 'me.weishu.exposed'
-    artifactId = 'exposed-xposedapi'
-    publishVersion = '0.1.0'
-    desc = 'Xposed Wrapper in non-root environment'
-    website = 'https://github.com/tiann/epic'
-}
+//apply plugin: 'com.novoda.bintray-release'
+//
+//publish {
+//    userOrg = 'twsxtd'//
+//    groupId = 'me.weishu.exposed'
+//    artifactId = 'exposed-xposedapi'
+//    publishVersion = "0.1.4"
+//    desc = 'Xposed Wrapper in non-root environment'
+//    website = 'https://github.com/tiann/epic'
+//}
 
 
