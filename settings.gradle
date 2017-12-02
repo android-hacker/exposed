@@ -1,1 +1,1 @@
-include ':app', ':xposed-api', ':hiddenapistubs', ':library'
+include ':exposed-xposedapi', ':hiddenapistubs', ':exposed-core'

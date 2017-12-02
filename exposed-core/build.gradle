@@ -23,17 +23,16 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    //compile project(':xposed-api')
-    compile 'me.weishu.exposed:exposed-xposedapi:0.1.4'
+    compile project(':exposed-xposedapi')
 }
 
 apply plugin: 'com.novoda.bintray-release'
 
 publish {
-    userOrg = 'twsxtd'//
-    groupId = 'me.weishu.exposed'
-    artifactId = 'exposed-core'
-    publishVersion = "0.1.4"
+    userOrg = 'twsxtd'
+    groupId = "${project.group}"
+    artifactId = "${project.name}"
+    publishVersion = "${project.version}"
     desc = 'Xposed Wrapper in non-root environment'
-    website = 'https://github.com/tiann/epic'
+    website = 'https://github.com/android-hacker/exposed'
 }

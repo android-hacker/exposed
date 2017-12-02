@@ -3,10 +3,10 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Exposed.iml" filepath="$PROJECT_DIR$/Exposed.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exposed-core/exposed-core.iml" filepath="$PROJECT_DIR$/exposed-core/exposed-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exposed-xposedapi/exposed-xposedapi.iml" filepath="$PROJECT_DIR$/exposed-xposedapi/exposed-xposedapi.iml" />
       <module fileurl="file://$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" filepath="$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" />
-      <module fileurl="file://$PROJECT_DIR$/library/library.iml" filepath="$PROJECT_DIR$/library/library.iml" />
-      <module fileurl="file://$PROJECT_DIR$/xposed-api/xposed-api.iml" filepath="$PROJECT_DIR$/xposed-api/xposed-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exposed-core/library.iml" filepath="$PROJECT_DIR$/exposed-core/library.iml" />
     </modules>
   </component>
 </project>

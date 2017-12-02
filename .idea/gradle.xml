@@ -8,10 +8,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/exposed-core" />
+            <option value="$PROJECT_DIR$/exposed-xposedapi" />
             <option value="$PROJECT_DIR$/hiddenapistubs" />
-            <option value="$PROJECT_DIR$/library" />
-            <option value="$PROJECT_DIR$/xposed-api" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
