@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Exposed.iml" filepath="$PROJECT_DIR$/Exposed.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exposed.iml" filepath="$PROJECT_DIR$/exposed.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exposed-core/exposed-core.iml" filepath="$PROJECT_DIR$/exposed-core/exposed-core.iml" />
       <module fileurl="file://$PROJECT_DIR$/exposed-core/exposed-core.iml" filepath="$PROJECT_DIR$/exposed-core/exposed-core.iml" />
       <module fileurl="file://$PROJECT_DIR$/exposed-xposedapi/exposed-xposedapi.iml" filepath="$PROJECT_DIR$/exposed-xposedapi/exposed-xposedapi.iml" />
       <module fileurl="file://$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" filepath="$PROJECT_DIR$/hiddenapistubs/hiddenapistubs.iml" />

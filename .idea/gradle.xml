@@ -9,8 +9,6 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/exposed-core" />
-            <option value="$PROJECT_DIR$/exposed-xposedapi" />
-            <option value="$PROJECT_DIR$/hiddenapistubs" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

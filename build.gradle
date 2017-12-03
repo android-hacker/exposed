@@ -22,11 +22,7 @@ allprojects {
     }
     tasks.withType(Javadoc) {
         enabled = false
-        // options.addStringOption('Xdoclint:none', '-quiet')
-        // options.addStringOption('encoding', 'UTF-8')
     }
-    group = 'me.weishu.exposed'
-    version = '0.2.0'
 }
 
 task clean(type: Delete) {

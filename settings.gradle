@@ -1,1 +1,1 @@
-include ':exposed-xposedapi', ':hiddenapistubs', ':exposed-core'
+include ':exposed-core'
