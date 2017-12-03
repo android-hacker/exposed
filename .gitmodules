@@ -1,0 +1,4 @@
+[submodule "exposed-xposedapi"]
+	path = exposed-xposedapi
+	url = https://github.com/android-hacker/XposedBridge
+	branch = patch
