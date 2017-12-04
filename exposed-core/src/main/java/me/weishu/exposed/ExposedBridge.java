@@ -63,6 +63,14 @@ public class ExposedBridge {
         initForXposedInstaller(context, applicationInfo, appClassLoader);
     }
 
+    public static void patchAppClassLoader(Context baseContext) {
+        final ClassLoader originClassLoader = baseContext.getClassLoader();
+        Object mPackageInfo = XposedHelpers.getObjectField(baseContext, "mPackageInfo");
+        ClassLoader appClassLoaderWithXposed = getAppClassLoaderWithXposed(originClassLoader);
+        XposedHelpers.setObjectField(mPackageInfo, "mClassLoader", appClassLoaderWithXposed);
+        Thread.currentThread().setContextClassLoader(appClassLoaderWithXposed);
+    }
+
     public static synchronized ClassLoader getAppClassLoaderWithXposed(ClassLoader appClassLoader) {
         if (exposedClassLoaderMap.containsKey(appClassLoader)) {
             return exposedClassLoaderMap.get(appClassLoader);
