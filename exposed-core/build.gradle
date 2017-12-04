@@ -28,7 +28,7 @@ dependencies {
 }
 
 group = 'me.weishu.exposed'
-version = '0.2.0'
+version = '0.2.2'
 
 apply plugin: 'com.novoda.bintray-release'
 
