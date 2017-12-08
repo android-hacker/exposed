@@ -7,6 +7,8 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
+import android.view.AbsSavedState;
+import android.view.View;
 
 import com.taobao.android.dexposed.DexposedBridge;
 
@@ -22,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -199,6 +202,8 @@ public class ExposedBridge {
             return;
         }
 
+        Log.i(TAG, "initForXposedInstaller");
+
         // XposedInstaller
         final int fakeXposedVersion = 88;
         final File xposedProp = context.getFileStreamPath("xposed_prop");
@@ -248,7 +253,6 @@ public class ExposedBridge {
                 super.beforeHookedMethod(param);
                 final Object path = param.args[0];
                 if (BASE_DIR.equals(path)) {
-                    log("found xposed base dir, redirect");
                     param.args[0] = dataDir;
                 }
             }
@@ -259,9 +263,21 @@ public class ExposedBridge {
                 super.beforeHookedMethod(param);
                 final Object path = param.args[0];
                 if (BASE_DIR.equals(path)) {
-                    log("found xposed base dir, redirect");
                     param.args[0] = dataDir;
                 }
+            }
+        });
+
+        // fix bug on Android O: https://github.com/emilsjolander/StickyListHeaders/issues/477
+        Class<?> stickyListHeadersClass = XposedHelpers.findClass("se.emilsjolander.stickylistheaders.StickyListHeadersListView", appClassLoader);
+        DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                param.setResult(AbsSavedState.EMPTY_STATE);
+                Field mPrivateFlags = XposedHelpers.findField(View.class, "mPrivateFlags");
+                int flags = mPrivateFlags.getInt(param.thisObject);
+                mPrivateFlags.set(param.thisObject, flags | 0x00020000);
             }
         });
     }
