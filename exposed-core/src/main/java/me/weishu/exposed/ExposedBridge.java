@@ -97,14 +97,14 @@ public class ExposedBridge {
                                   final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
 
         final String rootDir = new File(currentApplicationInfo.dataDir).getParent();
-//        boolean needCheck = loadModuleConfig(rootDir, currentApplicationInfo.processName);
-//
-//        if (needCheck) {
-//            if (!lastModuleList.second.contains(moduleApkPath)) {
-//                log("module:" + moduleApkPath + " is disabled, ignore");
-//                return;
-//            }
-//        }
+        boolean needCheck = loadModuleConfig(rootDir, currentApplicationInfo.processName);
+
+        if (needCheck) {
+            if (!lastModuleList.second.contains(moduleApkPath)) {
+                log("module:" + moduleApkPath + " is disabled, ignore");
+                return;
+            }
+        }
 
         log("Loading modules from " + moduleApkPath);
 
@@ -251,9 +251,9 @@ public class ExposedBridge {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                final Object path = param.args[0];
-                if (BASE_DIR.equals(path)) {
-                    param.args[0] = dataDir;
+                final String path = (String)param.args[0];
+                if (path.startsWith(BASE_DIR)) {
+                    param.args[0] = path.replace(BASE_DIR, path.equals(BASE_DIR) ? dataDir : dataDir + "/exposed_");
                 }
             }
         });
@@ -261,9 +261,9 @@ public class ExposedBridge {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                final Object path = param.args[0];
-                if (BASE_DIR.equals(path)) {
-                    param.args[0] = dataDir;
+                final String path = (String)param.args[0];
+                if (path.startsWith(BASE_DIR)) {
+                    param.args[0] = path.replace(BASE_DIR, path.equals(BASE_DIR) ? dataDir : dataDir + "/exposed_");
                 }
             }
         });
@@ -300,7 +300,7 @@ public class ExposedBridge {
             return false; // xposed installer not enabled, must load all.
         }
 
-        final File modiles = new File(xposedInstallerDir, "conf/modules.list");
+        final File modiles = new File(xposedInstallerDir, "exposed_conf/modules.list");
         if (!modiles.exists()) {
             Log.d(TAG, "xposed installer's modules not exist, ignore.");
             return false; // xposed installer config file not exist, load all.
@@ -347,7 +347,7 @@ public class ExposedBridge {
 
         Set<String> modileSet = new HashSet<>();
 
-        final File modules = new File(xposedInstallerDir, "conf/modules.list");
+        final File modules = new File(xposedInstallerDir, "exposed_conf/modules.list");
         BufferedReader br = null;
         try {
             br = new BufferedReader(new FileReader(modules));
