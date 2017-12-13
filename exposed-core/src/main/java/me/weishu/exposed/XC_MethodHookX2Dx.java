@@ -1,9 +1,5 @@
 package me.weishu.exposed;
 
-import android.util.Log;
-
-import java.util.Arrays;
-
 import de.robv.android.xposed.ExposedHelper;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
@@ -26,8 +22,6 @@ public class XC_MethodHookX2Dx extends com.taobao.android.dexposed.XC_MethodHook
 
     @Override
     protected void afterHookedMethod(com.taobao.android.dexposed.XC_MethodHook.MethodHookParam param) throws Throwable {
-        Log.i("mylog", "afterHookedMethod, dexposed:" + Arrays.toString(param.args));
-
         ExposedHelper.afterHookedMethod(beWrapped, new MethodHookParamDx2X(param));
     }
 

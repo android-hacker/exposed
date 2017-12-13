@@ -1,9 +1,6 @@
 package de.robv.android.xposed;
 
-import android.util.Log;
-
 import java.lang.reflect.Member;
-import java.util.Arrays;
 
 /**
  * Created by weishu on 17/11/30.
@@ -24,7 +21,6 @@ public class ExposedHelper {
     }
 
     public static void afterHookedMethod(XC_MethodHook methodHook, XC_MethodHook.MethodHookParam param) throws Throwable {
-        Log.i("mylog", "afterHookedMEthod, xpoed:" + Arrays.toString(param.args));
         methodHook.afterHookedMethod(param);
     }
 
