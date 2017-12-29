@@ -205,7 +205,7 @@ public class ExposedBridge {
         Log.i(TAG, "initForXposedInstaller");
 
         // XposedInstaller
-        final int fakeXposedVersion = 88;
+        final int fakeXposedVersion = 89;
         final File xposedProp = context.getFileStreamPath("xposed_prop");
         if (!xposedProp.exists()) {
             Properties properties = new Properties();
