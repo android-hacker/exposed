@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -44,6 +45,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static com.taobao.android.dexposed.DexposedBridge.log;
 
+
 public class ExposedBridge {
 
     private static final String TAG = "ExposedBridge";
@@ -55,6 +57,8 @@ public class ExposedBridge {
 
     public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
+
+    private static final String VERSION_KEY = "version";
 
     private static Pair<String, Set<String>> lastModuleList = Pair.create(null, null);
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
@@ -206,18 +210,17 @@ public class ExposedBridge {
 
         // XposedInstaller
         final int fakeXposedVersion = 89;
+        final String fakeVersionString = String.valueOf(fakeXposedVersion);
         final File xposedProp = context.getFileStreamPath("xposed_prop");
         if (!xposedProp.exists()) {
-            Properties properties = new Properties();
-            properties.put("version", String.valueOf(fakeXposedVersion));
-            properties.put("arch", Build.CPU_ABI);
-            properties.put("minsdk", "52");
-            properties.put("maxsdk", "88");
-
-            try {
-                properties.store(new FileOutputStream(xposedProp), null);
-            } catch (IOException e) {
-                log("write property file failed");
+            writeXposedProperty(xposedProp, fakeVersionString, false);
+        } else {
+            log("xposed config file exists, check version");
+            String oldVersion = getXposedVersionFromProperty(xposedProp);
+            if (!fakeVersionString.equals(oldVersion)) {
+                writeXposedProperty(xposedProp, fakeVersionString, true);
+            } else {
+                log("xposed version keep same, continue.");
             }
         }
 
@@ -280,6 +283,47 @@ public class ExposedBridge {
                 mPrivateFlags.set(param.thisObject, flags | 0x00020000);
             }
         });
+    }
+
+    /**
+     * write xposed property file to fake xposedinstaller
+     * @param propertyFile the property file used by XposedInstaller
+     * @param version to fake version
+     * @param retry need retry, when retry, delete file and try again
+     */
+    private static void writeXposedProperty(File propertyFile, String version, boolean retry) {
+        Properties properties = new Properties();
+        properties.put(VERSION_KEY, version);
+        properties.put("arch", Build.CPU_ABI);
+        properties.put("minsdk", "52");
+        properties.put("maxsdk", String.valueOf(Integer.MAX_VALUE));
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(propertyFile);
+            properties.store(fos, null);
+        } catch (IOException e) {
+            //noinspection ResultOfMethodCallIgnored
+            propertyFile.delete();
+            writeXposedProperty(propertyFile, version, false);
+        } finally {
+            closeSliently(fos);
+        }
+    }
+
+    private static String getXposedVersionFromProperty(File propertyFile) {
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(propertyFile);
+            Properties properties = new Properties();
+            properties.load(new FileInputStream(propertyFile));
+            return properties.getProperty(VERSION_KEY);
+        } catch (IOException e) {
+            log("getXposedVersion from property failed");
+            return null;
+        } finally {
+            closeSliently(fis);
+        }
     }
 
     /**
