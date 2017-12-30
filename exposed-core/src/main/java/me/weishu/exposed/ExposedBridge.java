@@ -13,13 +13,11 @@ import android.view.View;
 import com.taobao.android.dexposed.DexposedBridge;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -64,6 +62,17 @@ public class ExposedBridge {
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
     private static ClassLoader xposedClassLoader;
 
+    /**
+     * Module load result
+     */
+    enum ModuleLoadResult {
+        DISABLED,
+        NOT_EXIST,
+        INVALID,
+        SUCCESS,
+        FAILED
+    }
+
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
         ExposedHelper.initSeLinux(applicationInfo.processName);
 
@@ -97,24 +106,22 @@ public class ExposedBridge {
         return xposedClassLoader;
     }
 
-    public static void loadModule(final String moduleApkPath, String moduleOdexDir, String moduleLibPath,
+    public static ModuleLoadResult loadModule(final String moduleApkPath, String moduleOdexDir, String moduleLibPath,
                                   final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
 
         final String rootDir = new File(currentApplicationInfo.dataDir).getParent();
-        boolean needCheck = loadModuleConfig(rootDir, currentApplicationInfo.processName);
+        loadModuleConfig(rootDir, currentApplicationInfo.processName);
 
-        if (needCheck) {
-            if (!lastModuleList.second.contains(moduleApkPath)) {
-                log("module:" + moduleApkPath + " is disabled, ignore");
-                return;
-            }
+        if (lastModuleList.second == null || !lastModuleList.second.contains(moduleApkPath)) {
+            log("module:" + moduleApkPath + " is disabled, ignore");
+            return ModuleLoadResult.DISABLED;
         }
 
         log("Loading modules from " + moduleApkPath);
 
         if (!new File(moduleApkPath).exists()) {
-            log("  File does not exist");
-            return;
+            log(moduleApkPath + " does not exist");
+            return ModuleLoadResult.NOT_EXIST;
         }
 
         ClassLoader hostClassLoader = ExposedBridge.class.getClassLoader();
@@ -124,7 +131,7 @@ public class ExposedBridge {
         InputStream is = mcl.getResourceAsStream("assets/xposed_init");
         if (is == null) {
             log("assets/xposed_init not found in the APK");
-            return;
+            return ModuleLoadResult.INVALID;
         }
 
         BufferedReader moduleClassesReader = new BufferedReader(new InputStreamReader(is));
@@ -181,6 +188,7 @@ public class ExposedBridge {
 //                            updateModuleConfig(rootDir, moduleApkPath);
 //                        }
 //                    });
+                    return ModuleLoadResult.SUCCESS;
                 } catch (Throwable t) {
                     log(t);
                 }
@@ -193,6 +201,7 @@ public class ExposedBridge {
             } catch (IOException ignored) {
             }
         }
+        return ModuleLoadResult.FAILED;
     }
 
     public static XC_MethodHook.Unhook hookMethod(Member method, XC_MethodHook callback) {
@@ -333,18 +342,20 @@ public class ExposedBridge {
     private static boolean loadModuleConfig(String rootDir, String processName) {
 
         if (lastModuleList != null && TextUtils.equals(lastModuleList.first, processName) && lastModuleList.second != null) {
-            Log.d(TAG, "lastmodule valid, do not load");
+            Log.d(TAG, "lastmodule valid, do not load config repeat");
             return true; // xposed installer has config file, and has already loaded for this process, return.
         }
 
         // load modules
         final File xposedInstallerDir = new File(rootDir, XPOSED_INSTALL_PACKAGE);
+        Log.d(TAG, "xposedInstaller Dir:" + xposedInstallerDir);
         if (!xposedInstallerDir.exists()) {
             Log.d(TAG, "XposedInstaller not installed, ignore.");
             return false; // xposed installer not enabled, must load all.
         }
 
         final File modiles = new File(xposedInstallerDir, "exposed_conf/modules.list");
+        Log.d(TAG, "module file:" + modiles);
         if (!modiles.exists()) {
             Log.d(TAG, "xposed installer's modules not exist, ignore.");
             return false; // xposed installer config file not exist, load all.
@@ -366,6 +377,7 @@ public class ExposedBridge {
             }
 
             lastModuleList = Pair.create(processName, moduleSet);
+            Log.d(TAG, "last moduleslist: " + lastModuleList);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -378,45 +390,6 @@ public class ExposedBridge {
                     e.printStackTrace();
                 }
             }
-        }
-    }
-
-    private static void updateModuleConfig(String rootDir, String modulePath) {
-        // load modules
-        final File xposedInstallerDir = new File(rootDir, XPOSED_INSTALL_PACKAGE);
-        if (!xposedInstallerDir.exists()) {
-            Log.d(TAG, "XposedInstaller not installed, ignore.");
-            return ; // xposed installer not enabled, must load all.
-        }
-
-        Set<String> modileSet = new HashSet<>();
-
-        final File modules = new File(xposedInstallerDir, "exposed_conf/modules.list");
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new FileReader(modules));
-            String line;
-            while ((line = br.readLine()) != null) {
-                modileSet.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            closeSliently(br);
-        }
-        modileSet.add(modulePath);
-
-        BufferedWriter bw = null;
-        try {
-            bw = new BufferedWriter(new FileWriter(modules));
-            for (String module : modileSet) {
-                bw.write(module);
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            closeSliently(bw);
         }
     }
 
