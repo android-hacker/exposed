@@ -27,4 +27,11 @@ public class ExposedHelper {
     public static XC_MethodHook.Unhook newUnHook(XC_MethodHook methodHook, Member member) {
         return methodHook.new Unhook(member);
     }
+
+    public static void callInitZygote(String modulePath, Object moduleInstance) throws Throwable {
+        IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
+        param.modulePath = modulePath;
+        param.startsSystemServer = false;
+        ((IXposedHookZygoteInit) moduleInstance).initZygote(param);
+    }
 }

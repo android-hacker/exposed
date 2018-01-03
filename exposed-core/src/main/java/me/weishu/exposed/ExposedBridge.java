@@ -156,11 +156,7 @@ public class ExposedBridge {
 
                     final Object moduleInstance = moduleClass.newInstance();
                     if (moduleInstance instanceof IXposedHookZygoteInit) {
-                        // TODO: 17/12/1 ?
-//                            IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
-//                            param.modulePath = apk;
-//                            param.startsSystemServer = startsSystemServer;
-//                            ((IXposedHookZygoteInit) moduleInstance).initZygote(param);
+                        ExposedHelper.callInitZygote(moduleApkPath, moduleInstance);
                     }
 
                     if (moduleInstance instanceof IXposedHookLoadPackage) {
@@ -182,12 +178,6 @@ public class ExposedBridge {
                         // TODO: 17/12/1 Support Resource hook
                     }
 
-//                    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            updateModuleConfig(rootDir, moduleApkPath);
-//                        }
-//                    });
                     return ModuleLoadResult.SUCCESS;
                 } catch (Throwable t) {
                     log(t);
