@@ -9,6 +9,7 @@
         android:supportsRtl="true">
 
         <service android:name="me.weishu.exposed.LogcatService"
+            android:process=":logcat"
             android:enabled="true"
             android:exported="true"/>
     </application>
