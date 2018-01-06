@@ -7,6 +7,8 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.taobao.android.dexposed.DexposedBridge;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class LogcatService extends Service {
         if (mReading) {
             return;
         }
-        new Thread("exposed-logcat") {
+        Thread logcatThread = new Thread("exposed-logcat") {
             @Override
             public void run() {
                 super.run();
@@ -63,7 +65,16 @@ public class LogcatService extends Service {
                     e.printStackTrace();
                 }
             }
-        }.start();
+        };
+        logcatThread.setPriority(Thread.MIN_PRIORITY);
+        logcatThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                DexposedBridge.log(e);
+                // Do nothing else.
+            }
+        });
+        logcatThread.start();
     }
 
     public static void start(Context context, File xposedInstallerDataDir) {
