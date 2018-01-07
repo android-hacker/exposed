@@ -1,6 +1,7 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -10,6 +11,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.AbsSavedState;
 import android.view.View;
+import android.widget.Toast;
 
 import com.getkeepsafe.relinker.ReLinker;
 import com.taobao.android.dexposed.DexposedBridge;
@@ -42,6 +44,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import epic.me.weishu.library.R;
 
 import static com.taobao.android.dexposed.DexposedBridge.log;
 
@@ -290,13 +293,17 @@ public class ExposedBridge {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                Object fragment = param.thisObject;
+                Fragment fragment = (Fragment) param.thisObject;
                 if ("de.robv.android.xposed.installer.ModulesFragment".equals(fragment.getClass().getName())) {
                     // ModulesFragment, call reload
                     Class<?> moduleUtilClass = fragment.getClass().getClassLoader().loadClass("de.robv.android.xposed.installer.util.ModuleUtil");
                     Object moduleUtil = XposedHelpers.callStaticMethod(moduleUtilClass, "getInstance");
                     XposedHelpers.callMethod(moduleUtil, "reloadInstalledModules");
                     log("module fragment reload success!");
+                    Activity activity = fragment.getActivity();
+                    if (activity != null) {
+                        Toast.makeText(activity, R.string.module_reboot_tips, Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
