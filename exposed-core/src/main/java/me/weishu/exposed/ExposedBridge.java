@@ -11,6 +11,7 @@ import android.util.Pair;
 import android.view.AbsSavedState;
 import android.view.View;
 
+import com.getkeepsafe.relinker.ReLinker;
 import com.taobao.android.dexposed.DexposedBridge;
 
 import java.io.BufferedReader;
@@ -75,8 +76,8 @@ public class ExposedBridge {
     }
 
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
-
         initForXposedInstaller(context, applicationInfo, appClassLoader);
     }
 
