@@ -1,4 +1,3 @@
 <resources>
     <string name="app_name">library</string>
-    <string name="module_reboot_tips">module will take effect after Settings->Reboot!</string>
 </resources>

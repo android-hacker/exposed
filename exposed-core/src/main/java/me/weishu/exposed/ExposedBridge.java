@@ -31,6 +31,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -44,7 +45,6 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
-import epic.me.weishu.library.R;
 
 import static com.taobao.android.dexposed.DexposedBridge.log;
 
@@ -299,10 +299,12 @@ public class ExposedBridge {
                     Class<?> moduleUtilClass = fragment.getClass().getClassLoader().loadClass("de.robv.android.xposed.installer.util.ModuleUtil");
                     Object moduleUtil = XposedHelpers.callStaticMethod(moduleUtilClass, "getInstance");
                     XposedHelpers.callMethod(moduleUtil, "reloadInstalledModules");
-                    log("module fragment reload success!");
                     Activity activity = fragment.getActivity();
+                    log("module fragment reload success, activity:" + activity);
                     if (activity != null) {
-                        Toast.makeText(activity, R.string.module_reboot_tips, Toast.LENGTH_SHORT).show();
+                        String tips = Locale.getDefault().toString().contains("zh") ? "勾选模块之后，需要在主界面右上角按钮 -> 重启 才能生效哦～" :
+                                "module will take effect after Settings->Reboot!";
+                        Toast.makeText(activity, tips, Toast.LENGTH_SHORT).show();
                     }
                 }
             }
