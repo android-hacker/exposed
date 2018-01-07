@@ -1,6 +1,7 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
+import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
@@ -280,6 +281,22 @@ public class ExposedBridge {
                 Field mPrivateFlags = XposedHelpers.findField(View.class, "mPrivateFlags");
                 int flags = mPrivateFlags.getInt(param.thisObject);
                 mPrivateFlags.set(param.thisObject, flags | 0x00020000);
+            }
+        });
+
+        // make the module reload when enter ModuleFragment
+        DexposedBridge.findAndHookMethod(Fragment.class, "onResume", new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                Object fragment = param.thisObject;
+                if ("de.robv.android.xposed.installer.ModulesFragment".equals(fragment.getClass().getName())) {
+                    // ModulesFragment, call reload
+                    Class<?> moduleUtilClass = fragment.getClass().getClassLoader().loadClass("de.robv.android.xposed.installer.util.ModuleUtil");
+                    Object moduleUtil = XposedHelpers.callStaticMethod(moduleUtilClass, "getInstance");
+                    XposedHelpers.callMethod(moduleUtil, "reloadInstalledModules");
+                    log("module fragment reload success!");
+                }
             }
         });
     }
