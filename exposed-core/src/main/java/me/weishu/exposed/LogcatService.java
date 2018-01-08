@@ -34,9 +34,11 @@ public class LogcatService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String path = intent.getStringExtra(PATH_KEY);
-        if (!TextUtils.isEmpty(path)) {
-            startReadLogcat(path);
+        if (intent != null) {
+            String path = intent.getStringExtra(PATH_KEY);
+            if (!TextUtils.isEmpty(path)) {
+                startReadLogcat(path);
+            }
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -72,6 +74,7 @@ public class LogcatService extends Service {
             public void uncaughtException(Thread t, Throwable e) {
                 DexposedBridge.log(e);
                 // Do nothing else.
+                mReading = false;
             }
         });
         logcatThread.start();
