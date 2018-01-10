@@ -23,7 +23,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'me.weishu:epic:0.3.3' // The AOP Framework
+    compile 'me.weishu:epic:0.3.5' // The AOP Framework
     compile 'me.weishu.exposed:exposed-xposedapi:0.3.0' // The Xposed API
     compile 'com.getkeepsafe.relinker:relinker:1.2.3' // for load library
 }
