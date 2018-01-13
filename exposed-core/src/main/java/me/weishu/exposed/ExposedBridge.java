@@ -1,8 +1,6 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
@@ -11,7 +9,6 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.AbsSavedState;
 import android.view.View;
-import android.widget.Toast;
 
 import com.getkeepsafe.relinker.ReLinker;
 import com.taobao.android.dexposed.DexposedBridge;
@@ -31,7 +28,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -285,28 +281,6 @@ public class ExposedBridge {
                 Field mPrivateFlags = XposedHelpers.findField(View.class, "mPrivateFlags");
                 int flags = mPrivateFlags.getInt(param.thisObject);
                 mPrivateFlags.set(param.thisObject, flags | 0x00020000);
-            }
-        });
-
-        // make the module reload when enter ModuleFragment
-        DexposedBridge.findAndHookMethod(Fragment.class, "onResume", new com.taobao.android.dexposed.XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                Fragment fragment = (Fragment) param.thisObject;
-                if ("de.robv.android.xposed.installer.ModulesFragment".equals(fragment.getClass().getName())) {
-                    // ModulesFragment, call reload
-                    Class<?> moduleUtilClass = fragment.getClass().getClassLoader().loadClass("de.robv.android.xposed.installer.util.ModuleUtil");
-                    Object moduleUtil = XposedHelpers.callStaticMethod(moduleUtilClass, "getInstance");
-                    XposedHelpers.callMethod(moduleUtil, "reloadInstalledModules");
-                    Activity activity = fragment.getActivity();
-                    log("module fragment reload success, activity:" + activity);
-                    if (activity != null) {
-                        String tips = Locale.getDefault().toString().contains("zh") ? "勾选模块之后，需要在主界面右上角按钮 -> 重启 才能生效哦～" :
-                                "module will take effect after Settings->Reboot!";
-                        Toast.makeText(activity, tips, Toast.LENGTH_SHORT).show();
-                    }
-                }
             }
         });
     }
