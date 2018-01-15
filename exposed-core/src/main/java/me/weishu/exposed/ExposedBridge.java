@@ -1,9 +1,13 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
+import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
@@ -26,11 +30,13 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import dalvik.system.DexClassLoader;
 import de.robv.android.xposed.ExposedHelper;
@@ -38,6 +44,7 @@ import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -63,6 +70,14 @@ public class ExposedBridge {
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
     private static ClassLoader xposedClassLoader;
 
+    private static Context appContext;
+    private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
+        @Override
+        public void onModuleLoaded(String moduleName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+            // initForWeChatTranslate(moduleName, applicationInfo, appClassLoader);
+        }
+    };
+
     /**
      * Module load result
      */
@@ -75,8 +90,11 @@ public class ExposedBridge {
     }
 
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        appContext = context;
         ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
+        XSharedPreferences.setPackageBaseDirectory(new File(applicationInfo.dataDir).getParentFile());
+
         initForXposedInstaller(context, applicationInfo, appClassLoader);
     }
 
@@ -179,6 +197,8 @@ public class ExposedBridge {
                         // TODO: 17/12/1 Support Resource hook
                     }
 
+                    sModuleLoadListener.onModuleLoaded(moduleClassName, currentApplicationInfo, mcl);
+
                     return ModuleLoadResult.SUCCESS;
                 } catch (Throwable t) {
                     log(t);
@@ -209,7 +229,7 @@ public class ExposedBridge {
         Log.i(TAG, "initForXposedInstaller");
 
         // XposedInstaller
-        final int fakeXposedVersion = 89;
+        final int fakeXposedVersion = 91;
         final String fakeVersionString = String.valueOf(fakeXposedVersion);
         final File xposedProp = context.getFileStreamPath("xposed_prop");
         if (!xposedProp.exists()) {
@@ -284,6 +304,108 @@ public class ExposedBridge {
             }
         });
     }
+
+
+    private static void initForWeChatTranslate(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        if (!"com.hkdrjxy.wechart.xposed.XposedInit".equals(moduleClassName)) {
+            return;
+        }
+
+        if (!("com.hiwechart.translate".equals(applicationInfo.processName) || "com.tencent.mm".equals(applicationInfo.processName))) {
+            return;
+        }
+
+        final IBinder[] translateService = new IBinder[1];
+        Intent intent = new Intent();
+        intent.setAction("com.hiwechart.translate.aidl.TranslateService");
+        ComponentName v2 = new ComponentName("com.hiwechart.translate", "com.hiwechart.translate.aidl.TranslateService");
+        intent.setComponent(v2);
+        appContext.bindService(intent, new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.i("mylog", "onServiceConnected: " + service);
+                translateService[0] = service;
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        }, Context.BIND_AUTO_CREATE);
+
+        Class<?> serviceManager = XposedHelpers.findClass("android.os.ServiceManager", appClassLoader);
+        final String serviceName = Build.VERSION.SDK_INT >= 21 ? "user.wechart.trans" : "wechart.trans";
+        DexposedBridge.findAndHookMethod(serviceManager, "getService", String.class, new com.taobao.android.dexposed.XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                if (serviceName.equals(param.args[0])) {
+                    Log.i("mylog", "get service :" + translateService[0]);
+                    param.setResult(translateService[0]);
+                }
+            }
+        });
+
+        try {
+            Class<?> okHttpClient = XposedHelpers.findClass("okhttp3.OkHttpClient", appClassLoader);
+            DexposedBridge.findAndHookMethod(okHttpClient, "newBuilder", new com.taobao.android.dexposed.XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    Log.i("mylog", "OkHttpClient.newBuilder before:");
+                }
+
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    Log.i("mylog", "OkHttpClient.newBuilder after:" + param.getResult());
+                }
+            });
+
+            Class<?> DevicesLocation = XposedHelpers.findClass("okhttp3.OkHttpClient$Builder", appClassLoader);
+            DexposedBridge.hookAllConstructors(DevicesLocation, new com.taobao.android.dexposed.XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    Log.i("mylog", "OkHttpClient$Builder:" + Arrays.toString(param.args), new RuntimeException("stack"));
+                }
+            });
+
+            DexposedBridge.findAndHookMethod(DevicesLocation, "checkDuration", String.class, long.class, TimeUnit.class, new com.taobao.android.dexposed.XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    Log.i("mylog", "checkDuration:" + Arrays.toString(param.args));
+                }
+            });
+
+            DexposedBridge.findAndHookMethod(DevicesLocation, "connectTimeout", long.class, TimeUnit.class, new com.taobao.android.dexposed.XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    Log.i("mylog", "connectTimeout, this: " + param.thisObject + ", args:" + Arrays.toString(param.args) + ", result:" + param.getResult());
+                }
+            });
+        } catch (Throwable e) {
+            Log.e("mylog", "classLoader eror", e);
+        }
+    }
+
+//    private static void initForWeChatTranslate(final Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+//        if (!"".equals(applicationInfo.packageName)) {
+//            return;
+//        }
+//        DexposedBridge.findAndHookMethod(Environment.class, "getExternalStorageDirectory", new com.taobao.android.dexposed.XC_MethodHook() {
+//            @Override
+//            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                super.beforeHookedMethod(param);
+//                File f = context.getFilesDir();
+//                param.setResult(f);
+//            }
+//        });
+//
+//    }
+
 
     /**
      * write xposed property file to fake xposedinstaller
