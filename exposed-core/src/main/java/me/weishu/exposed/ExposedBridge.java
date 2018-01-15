@@ -15,7 +15,6 @@ import android.view.AbsSavedState;
 import android.view.View;
 
 import com.getkeepsafe.relinker.ReLinker;
-import com.taobao.android.dexposed.DexposedBridge;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -39,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import dalvik.system.DexClassLoader;
+import de.robv.android.xposed.DexposedBridge;
 import de.robv.android.xposed.ExposedHelper;
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -49,7 +49,7 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-import static com.taobao.android.dexposed.DexposedBridge.log;
+import static de.robv.android.xposed.XposedBridge.log;
 
 
 public class ExposedBridge {
@@ -216,7 +216,7 @@ public class ExposedBridge {
     }
 
     public static XC_MethodHook.Unhook hookMethod(Member method, XC_MethodHook callback) {
-        final com.taobao.android.dexposed.XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, new XC_MethodHookX2Dx(callback));
+        final XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, callback);
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
     }
 
@@ -252,16 +252,16 @@ public class ExposedBridge {
             Array.set(xposed_prop_files, i, xposedPropPath);
         }
 
-        DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
                 param.setResult(fakeXposedVersion);
             }
         });
-        DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+            protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
                 param.setResult(fakeXposedVersion);
             }
@@ -270,7 +270,7 @@ public class ExposedBridge {
         final Constructor<?> fileConstructor1 = XposedHelpers.findConstructorExact(File.class, String.class);
         final Constructor<?> fileConstructor2 = XposedHelpers.findConstructorExact(File.class, String.class, String.class);
         final String dataDir = applicationInfo.dataDir;
-        DexposedBridge.hookMethod(fileConstructor1, new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.hookMethod(fileConstructor1, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -280,7 +280,7 @@ public class ExposedBridge {
                 }
             }
         });
-        DexposedBridge.hookMethod(fileConstructor2, new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.hookMethod(fileConstructor2, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -293,7 +293,7 @@ public class ExposedBridge {
 
         // fix bug on Android O: https://github.com/emilsjolander/StickyListHeaders/issues/477
         Class<?> stickyListHeadersClass = XposedHelpers.findClass("se.emilsjolander.stickylistheaders.StickyListHeadersListView", appClassLoader);
-        DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -335,7 +335,7 @@ public class ExposedBridge {
 
         Class<?> serviceManager = XposedHelpers.findClass("android.os.ServiceManager", appClassLoader);
         final String serviceName = Build.VERSION.SDK_INT >= 21 ? "user.wechart.trans" : "wechart.trans";
-        DexposedBridge.findAndHookMethod(serviceManager, "getService", String.class, new com.taobao.android.dexposed.XC_MethodHook() {
+        DexposedBridge.findAndHookMethod(serviceManager, "getService", String.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -348,7 +348,7 @@ public class ExposedBridge {
 
         try {
             Class<?> okHttpClient = XposedHelpers.findClass("okhttp3.OkHttpClient", appClassLoader);
-            DexposedBridge.findAndHookMethod(okHttpClient, "newBuilder", new com.taobao.android.dexposed.XC_MethodHook() {
+            DexposedBridge.findAndHookMethod(okHttpClient, "newBuilder", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.afterHookedMethod(param);
@@ -363,7 +363,7 @@ public class ExposedBridge {
             });
 
             Class<?> DevicesLocation = XposedHelpers.findClass("okhttp3.OkHttpClient$Builder", appClassLoader);
-            DexposedBridge.hookAllConstructors(DevicesLocation, new com.taobao.android.dexposed.XC_MethodHook() {
+            DexposedBridge.hookAllConstructors(DevicesLocation, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
@@ -371,7 +371,7 @@ public class ExposedBridge {
                 }
             });
 
-            DexposedBridge.findAndHookMethod(DevicesLocation, "checkDuration", String.class, long.class, TimeUnit.class, new com.taobao.android.dexposed.XC_MethodHook() {
+            DexposedBridge.findAndHookMethod(DevicesLocation, "checkDuration", String.class, long.class, TimeUnit.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
@@ -379,7 +379,7 @@ public class ExposedBridge {
                 }
             });
 
-            DexposedBridge.findAndHookMethod(DevicesLocation, "connectTimeout", long.class, TimeUnit.class, new com.taobao.android.dexposed.XC_MethodHook() {
+            DexposedBridge.findAndHookMethod(DevicesLocation, "connectTimeout", long.class, TimeUnit.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     super.afterHookedMethod(param);

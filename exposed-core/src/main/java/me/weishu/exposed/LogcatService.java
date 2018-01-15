@@ -7,13 +7,12 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.taobao.android.dexposed.DexposedBridge;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.robv.android.xposed.DexposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 
 /**
