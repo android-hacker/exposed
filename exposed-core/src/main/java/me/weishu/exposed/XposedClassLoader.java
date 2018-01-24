@@ -13,7 +13,9 @@ public class XposedClassLoader extends ClassLoader {
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (name.startsWith("de.robv.android.xposed") || name.startsWith("android")) {
+        if (name.startsWith("de.robv.android.xposed")
+                || name.startsWith("android")
+                || name.startsWith("external")) {
             return mHostClassLoader.loadClass(name);
         }
         return super.loadClass(name, resolve);
