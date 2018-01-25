@@ -93,6 +93,7 @@ public class ExposedBridge {
         ExposedHelper.initSeLinux(applicationInfo.processName);
         XSharedPreferences.setPackageBaseDirectory(new File(applicationInfo.dataDir).getParentFile());
 
+        initForXposedModule(context, applicationInfo, appClassLoader);
         initForXposedInstaller(context, applicationInfo, appClassLoader);
     }
 
@@ -220,6 +221,18 @@ public class ExposedBridge {
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
     }
 
+    private static void initForXposedModule(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        InputStream inputStream = null;
+
+        try {
+            inputStream = context.getAssets().open("xposed_init");
+            System.setProperty("epic.force", "true");
+        } catch (IOException e) {
+            log("initForXposedModule, ignore :" + applicationInfo.packageName);
+        } finally {
+            closeSliently(inputStream);
+        }
+    }
 
     private static void initForXposedInstaller(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
         if (!XPOSED_INSTALL_PACKAGE.equals(applicationInfo.packageName)) {
