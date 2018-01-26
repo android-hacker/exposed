@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.IBinder;
 import android.text.TextUtils;
@@ -29,6 +30,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -67,6 +69,8 @@ public class ExposedBridge {
     private static Pair<String, Set<String>> lastModuleList = Pair.create(null, null);
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
     private static ClassLoader xposedClassLoader;
+
+    private static volatile boolean isWxposed = false;
 
     private static Context appContext;
     private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
@@ -166,6 +170,10 @@ public class ExposedBridge {
                     log("  Loading class " + moduleClassName);
                     Class<?> moduleClass = mcl.loadClass(moduleClassName);
 
+                    if ("com.fkzhang.wechatxposed.XposedInit".equalsIgnoreCase(moduleClassName)) {
+                        isWxposed = true;
+                    }
+
                     if (!ExposedHelper.isIXposedMod(moduleClass)) {
                         log("    This class doesn't implement any sub-interface of IXposedMod, skipping it");
                         continue;
@@ -216,7 +224,22 @@ public class ExposedBridge {
         return ModuleLoadResult.FAILED;
     }
 
+    private static boolean ignoreHooks(Member member) {
+        if (isWxposed) {
+            if (member instanceof Method) {
+                if (((Method) member).getReturnType() == Bitmap.class) {
+                    log("ignore hook: " + ((Method) member).toGenericString());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static XC_MethodHook.Unhook hookMethod(Member method, XC_MethodHook callback) {
+        if (ignoreHooks(method)) {
+            return null;
+        }
         final XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, callback);
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
     }
