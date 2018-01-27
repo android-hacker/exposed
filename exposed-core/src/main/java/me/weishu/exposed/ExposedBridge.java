@@ -231,6 +231,10 @@ public class ExposedBridge {
                     log("ignore hook: " + ((Method) member).toGenericString());
                     return true;
                 }
+                if ("closeChatting".equalsIgnoreCase(member.getName())) {
+                    log("ignore hook: " + ((Method) member).toGenericString());
+                    return true;
+                }
             }
         }
         return false;
