@@ -56,7 +56,9 @@ public class LogcatService extends Service {
                     List<String> cmds = new ArrayList<String>();
                     cmds.add("sh");
                     cmds.add("-c");
-                    cmds.add("logcat -v time -s XposedStartupMarker:D Xposed:I appproc:I XposedInstaller:I art:F DexposedBridge:I >> " + path);
+                    cmds.add("logcat -v time -s XposedStartupMarker:D Xposed:I appproc:I XposedInstaller:I art:F DexposedBridge:I ExposedBridge:D " +
+                            "Runtime:I EpicNative:D VClientImpl:D " +
+                            " >> " + path);
                     ProcessBuilder pb = new ProcessBuilder(cmds);
                     Process p = pb.start();
                     p.waitFor();
