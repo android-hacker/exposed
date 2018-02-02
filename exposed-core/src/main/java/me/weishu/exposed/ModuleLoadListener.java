@@ -7,5 +7,6 @@ import android.content.pm.ApplicationInfo;
  */
 
 public interface ModuleLoadListener {
+    void onLoadingModule(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader);
     void onModuleLoaded(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader);
 }

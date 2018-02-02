@@ -70,10 +70,17 @@ public class ExposedBridge {
     private static Map<ClassLoader, ClassLoader> exposedClassLoaderMap = new HashMap<>();
     private static ClassLoader xposedClassLoader;
 
-    private static volatile boolean isWxposed = false;
+    private static volatile boolean isWeChat = false;
 
     private static Context appContext;
     private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
+        @Override
+        public void onLoadingModule(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+            if ("com.tencent.mm".equalsIgnoreCase(applicationInfo.packageName)) {
+                isWeChat = true;
+            }
+        }
+
         @Override
         public void onModuleLoaded(String moduleName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
             initForWeChatTranslate(moduleName, applicationInfo, appClassLoader);
@@ -175,9 +182,7 @@ public class ExposedBridge {
                     log("  Loading class " + moduleClassName);
                     Class<?> moduleClass = mcl.loadClass(moduleClassName);
 
-                    if ("com.fkzhang.wechatxposed.XposedInit".equalsIgnoreCase(moduleClassName)) {
-                        isWxposed = true;
-                    }
+                    sModuleLoadListener.onLoadingModule(moduleClassName, currentApplicationInfo, mcl);
 
                     if (!ExposedHelper.isIXposedMod(moduleClass)) {
                         log("    This class doesn't implement any sub-interface of IXposedMod, skipping it");
@@ -230,14 +235,18 @@ public class ExposedBridge {
     }
 
     private static boolean ignoreHooks(Member member) {
-        if (isWxposed) {
+        if (isWeChat) {
             if (member instanceof Method) {
                 if (((Method) member).getReturnType() == Bitmap.class) {
-                    log("ignore hook: " + ((Method) member).toGenericString());
+                    log("i h: " + ((Method) member).toGenericString());
                     return true;
                 }
                 if ("closeChatting".equalsIgnoreCase(member.getName())) {
-                    log("ignore hook: " + ((Method) member).toGenericString());
+                    log("i h: " + ((Method) member).toGenericString());
+                    return true;
+                }
+                if (member.getDeclaringClass().getName().contains("notification")) {
+                    log("i h: " + ((Method) member).toGenericString());
                     return true;
                 }
             }
