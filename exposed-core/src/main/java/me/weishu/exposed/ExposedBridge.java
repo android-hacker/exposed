@@ -88,7 +88,8 @@ public class ExposedBridge {
         NOT_EXIST,
         INVALID,
         SUCCESS,
-        FAILED
+        FAILED,
+        IGNORED
     }
 
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
@@ -130,6 +131,10 @@ public class ExposedBridge {
 
     public static ModuleLoadResult loadModule(final String moduleApkPath, String moduleOdexDir, String moduleLibPath,
                                   final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
+
+        if (isXposedInstaller(currentApplicationInfo)) {
+            return ModuleLoadResult.IGNORED;
+        }
 
         final String rootDir = new File(currentApplicationInfo.dataDir).getParent();
         loadModuleConfig(rootDir, currentApplicationInfo.processName);
@@ -261,8 +266,12 @@ public class ExposedBridge {
         }
     }
 
+    private static boolean isXposedInstaller(ApplicationInfo applicationInfo) {
+        return XPOSED_INSTALL_PACKAGE.equals(applicationInfo.packageName);
+    }
+
     private static void initForXposedInstaller(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
-        if (!XPOSED_INSTALL_PACKAGE.equals(applicationInfo.packageName)) {
+        if (!isXposedInstaller(applicationInfo)) {
             return;
         }
 
