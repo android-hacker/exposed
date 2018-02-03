@@ -64,6 +64,7 @@ public class ExposedBridge {
     public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
+    private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
     private static boolean SYSTEM_CLASSLOADER_INJECT = true;
 
@@ -104,7 +105,7 @@ public class ExposedBridge {
 
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
         SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
-
+        XposedBridge.XPOSED_BRIDGE_VERSION = FAKE_XPOSED_VERSION;
         appContext = context;
         ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
@@ -311,8 +312,7 @@ public class ExposedBridge {
         }
 
         // XposedInstaller
-        final int fakeXposedVersion = 91;
-        final String fakeVersionString = String.valueOf(fakeXposedVersion);
+        final String fakeVersionString = String.valueOf(FAKE_XPOSED_VERSION);
         final File xposedProp = context.getFileStreamPath("xposed_prop");
         if (!xposedProp.exists()) {
             writeXposedProperty(xposedProp, fakeVersionString, false);
@@ -338,14 +338,14 @@ public class ExposedBridge {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                param.setResult(fakeXposedVersion);
+                param.setResult(FAKE_XPOSED_VERSION);
             }
         });
         DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                param.setResult(fakeXposedVersion);
+                param.setResult(FAKE_XPOSED_VERSION);
             }
         });
 
