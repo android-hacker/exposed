@@ -66,7 +66,7 @@ public class ExposedBridge {
 
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
-    private static boolean SYSTEM_CLASSLOADER_INJECT = true;
+    private static boolean SYSTEM_CLASSLOADER_INJECT = false;
 
     private static final String WECHAT_PACKAGE = "com.tencent.mm";
 
@@ -104,7 +104,7 @@ public class ExposedBridge {
     }
 
     public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
-        SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
+        // SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
         XposedBridge.XPOSED_BRIDGE_VERSION = FAKE_XPOSED_VERSION;
         appContext = context;
         ReLinker.loadLibrary(context, "epic");
@@ -127,6 +127,7 @@ public class ExposedBridge {
             parent.setAccessible(true);
             parent.set(systemClassLoader, xposedClassLoader);
 
+            log("XposedBridge's BootClassLoader: " + XposedBridge.BOOTCLASSLOADER + ", parent: " + XposedBridge.BOOTCLASSLOADER.getParent());
             // SystemClassLoader -> XposedClassLoader -> BootstrapClassLoader
             return systemClassLoader.getParent() == xposedClassLoader;
         } catch (NoSuchFieldException e) {

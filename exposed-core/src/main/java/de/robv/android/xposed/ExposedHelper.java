@@ -13,6 +13,9 @@ public class ExposedHelper {
     }
 
     public static boolean isIXposedMod(Class<?> moduleClass) {
+        XposedBridge.log("module's classLoader : " + moduleClass.getClassLoader() + ", super: " + moduleClass.getSuperclass());
+        XposedBridge.log("IXposedMod's classLoader : " + IXposedMod.class.getClassLoader());
+
         return IXposedMod.class.isAssignableFrom(moduleClass);
     }
 
