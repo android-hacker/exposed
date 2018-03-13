@@ -303,11 +303,15 @@ public class ExposedBridge {
         }
 
         final Class<?> xposedApp = XposedHelpers.findClass("de.robv.android.xposed.installer.XposedApp", appClassLoader);
-        final Object xposed_prop_files = XposedHelpers.getStaticObjectField(xposedApp, "XPOSED_PROP_FILES");
-        final int length = Array.getLength(xposed_prop_files);
-        String xposedPropPath = xposedProp.getPath();
-        for (int i = 0; i < length; i++) {
-            Array.set(xposed_prop_files, i, xposedPropPath);
+        try {
+            final Object xposed_prop_files = XposedHelpers.getStaticObjectField(xposedApp, "XPOSED_PROP_FILES");
+            final int length = Array.getLength(xposed_prop_files);
+            String xposedPropPath = xposedProp.getPath();
+            for (int i = 0; i < length; i++) {
+                Array.set(xposed_prop_files, i, xposedPropPath);
+            }
+        } catch (Throwable ignored) {
+            // only support 3.1.5 and above.
         }
 
         DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
