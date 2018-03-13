@@ -9,6 +9,7 @@ import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
 import android.view.AbsSavedState;
@@ -104,6 +105,7 @@ public class ExposedBridge {
 
         initForXposedModule(context, applicationInfo, appClassLoader);
         initForXposedInstaller(context, applicationInfo, appClassLoader);
+        initForWechat(context, applicationInfo, appClassLoader);
     }
 
     private static boolean patchSystemClassLoader() {
@@ -408,6 +410,54 @@ public class ExposedBridge {
         });
     }
 
+    private static void initForWechat(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        if (applicationInfo == null) {
+            return;
+        }
+        final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+
+        if (!WECHAT.equals(applicationInfo.packageName)) {
+            return;
+        }
+        if (WECHAT.equals(applicationInfo.processName)) {
+            // for main process
+            String dataDir = applicationInfo.dataDir;
+
+            File tinker = new File(dataDir, decodeFromBase64("dGlua2Vy"));
+            File tinker_temp = new File(dataDir, decodeFromBase64("dGlua2VyX3RlbXA="));
+            File tinker_server = new File(dataDir, decodeFromBase64("dGlua2VyX3NlcnZlcg=="));
+
+            deleteDir(tinker);
+            deleteDir(tinker_temp);
+            deleteDir(tinker_server);
+        }
+    }
+
+    public static boolean deleteDir(File dir) {
+        if (dir == null) {
+            return false;
+        }
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            for (String file : children) {
+                boolean success = deleteDir(new File(dir, file));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
+    }
+
+    /**
+     * avoid from being searched by google.
+     * @param base64
+     * @return
+     */
+    private static String decodeFromBase64(String base64) {
+        return new String(Base64.decode(base64, 0));
+    }
+
     /**
      * write xposed property file to fake xposedinstaller
      * @param propertyFile the property file used by XposedInstaller
@@ -456,20 +506,20 @@ public class ExposedBridge {
     private static boolean loadModuleConfig(String rootDir, String processName) {
 
         if (lastModuleList != null && TextUtils.equals(lastModuleList.first, processName) && lastModuleList.second != null) {
-            Log.d(TAG, "lastmodule valid, do not load config repeat");
+            // Log.d(TAG, "lastmodule valid, do not load config repeat");
             return true; // xposed installer has config file, and has already loaded for this process, return.
         }
 
         // load modules
         final File xposedInstallerDir = new File(rootDir, XPOSED_INSTALL_PACKAGE);
-        Log.d(TAG, "xposedInstaller Dir:" + xposedInstallerDir);
+        // Log.d(TAG, "xposedInstaller Dir:" + xposedInstallerDir);
         if (!xposedInstallerDir.exists()) {
-            Log.d(TAG, "XposedInstaller not installed, ignore.");
+            // Log.d(TAG, "XposedInstaller not installed, ignore.");
             return false; // xposed installer not enabled, must load all.
         }
 
         final File modiles = new File(xposedInstallerDir, "exposed_conf/modules.list");
-        Log.d(TAG, "module file:" + modiles);
+        // Log.d(TAG, "module file:" + modiles);
         if (!modiles.exists()) {
             Log.d(TAG, "xposed installer's modules not exist, ignore.");
             return false; // xposed installer config file not exist, load all.
@@ -491,7 +541,7 @@ public class ExposedBridge {
             }
 
             lastModuleList = Pair.create(processName, moduleSet);
-            Log.d(TAG, "last moduleslist: " + lastModuleList);
+            // Log.d(TAG, "last moduleslist: " + lastModuleList);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
