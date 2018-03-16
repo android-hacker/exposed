@@ -14,6 +14,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.AbsSavedState;
 import android.view.View;
+import android.widget.Toast;
 
 import com.getkeepsafe.relinker.ReLinker;
 
@@ -312,24 +313,29 @@ public class ExposedBridge {
             for (int i = 0; i < length; i++) {
                 Array.set(xposed_prop_files, i, xposedPropPath);
             }
+
+
+            DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    param.setResult(FAKE_XPOSED_VERSION);
+                }
+            });
+            DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    param.setResult(FAKE_XPOSED_VERSION);
+                }
+            });
         } catch (Throwable ignored) {
             // only support 3.1.5 and above.
+            try {
+                Toast.makeText(context, "The XposedInstaller you used is not supported.", Toast.LENGTH_SHORT).show();
+            } catch (Throwable ignored2) {
+            }
         }
-
-        DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                super.beforeHookedMethod(param);
-                param.setResult(FAKE_XPOSED_VERSION);
-            }
-        });
-        DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
-                super.beforeHookedMethod(param);
-                param.setResult(FAKE_XPOSED_VERSION);
-            }
-        });
 
         final Constructor<?> fileConstructor1 = XposedHelpers.findConstructorExact(File.class, String.class);
         final Constructor<?> fileConstructor2 = XposedHelpers.findConstructorExact(File.class, String.class, String.class);
