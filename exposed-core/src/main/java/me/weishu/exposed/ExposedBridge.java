@@ -329,6 +329,20 @@ public class ExposedBridge {
                     param.setResult(FAKE_XPOSED_VERSION);
                 }
             });
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // fix bug on Android O: https://github.com/emilsjolander/StickyListHeaders/issues/477
+                Class<?> stickyListHeadersClass = XposedHelpers.findClass("se.emilsjolander.stickylistheaders.StickyListHeadersListView", appClassLoader);
+                DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        super.beforeHookedMethod(param);
+                        param.setResult(AbsSavedState.EMPTY_STATE);
+                        Field mPrivateFlags = XposedHelpers.findField(View.class, "mPrivateFlags");
+                        int flags = mPrivateFlags.getInt(param.thisObject);
+                        mPrivateFlags.set(param.thisObject, flags | 0x00020000);
+                    }
+                });
+            }
         } catch (Throwable ignored) {
             // only support 3.1.5 and above.
             try {
@@ -361,18 +375,7 @@ public class ExposedBridge {
             }
         });
 
-        // fix bug on Android O: https://github.com/emilsjolander/StickyListHeaders/issues/477
-        Class<?> stickyListHeadersClass = XposedHelpers.findClass("se.emilsjolander.stickylistheaders.StickyListHeadersListView", appClassLoader);
-        DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                super.beforeHookedMethod(param);
-                param.setResult(AbsSavedState.EMPTY_STATE);
-                Field mPrivateFlags = XposedHelpers.findField(View.class, "mPrivateFlags");
-                int flags = mPrivateFlags.getInt(param.thisObject);
-                mPrivateFlags.set(param.thisObject, flags | 0x00020000);
-            }
-        });
+
     }
 
 
