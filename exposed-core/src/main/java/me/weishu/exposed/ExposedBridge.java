@@ -315,14 +315,14 @@ public class ExposedBridge {
             }
 
 
-            DexposedBridge.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(xposedApp, "getActiveXposedVersion", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
                     param.setResult(FAKE_XPOSED_VERSION);
                 }
             });
-            DexposedBridge.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
+            XposedHelpers.findAndHookMethod(xposedApp, "getInstalledXposedVersion", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
@@ -332,7 +332,7 @@ public class ExposedBridge {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // fix bug on Android O: https://github.com/emilsjolander/StickyListHeaders/issues/477
                 Class<?> stickyListHeadersClass = XposedHelpers.findClass("se.emilsjolander.stickylistheaders.StickyListHeadersListView", appClassLoader);
-                DexposedBridge.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new XC_MethodHook() {
+                XposedHelpers.findAndHookMethod(stickyListHeadersClass, "onSaveInstanceState", new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
@@ -354,7 +354,7 @@ public class ExposedBridge {
         final Constructor<?> fileConstructor1 = XposedHelpers.findConstructorExact(File.class, String.class);
         final Constructor<?> fileConstructor2 = XposedHelpers.findConstructorExact(File.class, String.class, String.class);
         final String dataDir = applicationInfo.dataDir;
-        DexposedBridge.hookMethod(fileConstructor1, new XC_MethodHook() {
+        XposedBridge.hookMethod(fileConstructor1, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -364,7 +364,7 @@ public class ExposedBridge {
                 }
             }
         });
-        DexposedBridge.hookMethod(fileConstructor2, new XC_MethodHook() {
+        XposedBridge.hookMethod(fileConstructor2, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -407,7 +407,7 @@ public class ExposedBridge {
 
         Class<?> serviceManager = XposedHelpers.findClass("android.os.ServiceManager", appClassLoader);
         final String serviceName = Build.VERSION.SDK_INT >= 21 ? "user.wechart.trans" : "wechart.trans";
-        DexposedBridge.findAndHookMethod(serviceManager, "getService", String.class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod(serviceManager, "getService", String.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);

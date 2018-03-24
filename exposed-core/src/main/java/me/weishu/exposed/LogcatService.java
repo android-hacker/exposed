@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.robv.android.xposed.DexposedBridge;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 
 /**
@@ -73,7 +73,7 @@ public class LogcatService extends Service {
         logcatThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                DexposedBridge.log(e);
+                XposedBridge.log(e);
                 // Do nothing else.
                 mReading = false;
             }
