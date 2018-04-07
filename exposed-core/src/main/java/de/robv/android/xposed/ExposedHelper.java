@@ -13,16 +13,12 @@ public class ExposedHelper {
     }
 
     public static boolean isIXposedMod(Class<?> moduleClass) {
+        XposedBridge.log("module's classLoader : " + moduleClass.getClassLoader() + ", super: " + moduleClass.getSuperclass());
+        XposedBridge.log("IXposedMod's classLoader : " + IXposedMod.class.getClassLoader());
+
         return IXposedMod.class.isAssignableFrom(moduleClass);
     }
 
-    public static void beforeHookedMethod(XC_MethodHook methodHook, XC_MethodHook.MethodHookParam param) throws Throwable {
-        methodHook.beforeHookedMethod(param);
-    }
-
-    public static void afterHookedMethod(XC_MethodHook methodHook, XC_MethodHook.MethodHookParam param) throws Throwable {
-        methodHook.afterHookedMethod(param);
-    }
 
     public static XC_MethodHook.Unhook newUnHook(XC_MethodHook methodHook, Member member) {
         return methodHook.new Unhook(member);
