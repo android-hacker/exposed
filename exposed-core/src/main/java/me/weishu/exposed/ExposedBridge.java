@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.IBinder;
@@ -107,6 +108,7 @@ public class ExposedBridge {
         initForXposedModule(context, applicationInfo, appClassLoader);
         initForXposedInstaller(context, applicationInfo, appClassLoader);
         initForWechat(context, applicationInfo, appClassLoader);
+        initForQQ(context, applicationInfo, appClassLoader);
     }
 
     private static boolean patchSystemClassLoader() {
@@ -417,6 +419,22 @@ public class ExposedBridge {
                 }
             }
         });
+    }
+
+    @SuppressLint("ApplySharedPref")
+    private static void initForQQ(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
+        if (applicationInfo == null) {
+            return;
+        }
+        final String QQ = decodeFromBase64("Y29tLnRlbmNlbnQubW9iaWxlcXE=");
+        if (!QQ.equals(applicationInfo.packageName)) {
+            return;
+        }
+        if (QQ.equals(applicationInfo.processName)) {
+            SharedPreferences sp = context.getSharedPreferences(decodeFromBase64("aG90cGF0Y2hfcHJlZmVyZW5jZQ=="), // hotpatch_preference
+                    Context.MODE_PRIVATE);
+            sp.edit().remove(decodeFromBase64("a2V5X2NvbmZpZ19wYXRjaF9kZXg=")).commit(); // key_config_patch_dex
+        }
     }
 
     private static void initForWechat(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
