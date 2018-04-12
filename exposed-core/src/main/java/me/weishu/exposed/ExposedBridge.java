@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.Process;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -32,6 +33,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -156,7 +158,7 @@ public class ExposedBridge {
     }
 
     public static ModuleLoadResult loadModule(final String moduleApkPath, String moduleOdexDir, String moduleLibPath,
-                                  final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
+                                              final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
 
         if (isXposedInstaller(currentApplicationInfo)) {
             return ModuleLoadResult.IGNORED;
@@ -360,7 +362,7 @@ public class ExposedBridge {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                final String path = (String)param.args[0];
+                final String path = (String) param.args[0];
                 if (path.startsWith(BASE_DIR)) {
                     param.args[0] = path.replace(BASE_DIR, path.equals(BASE_DIR) ? dataDir : dataDir + "/exposed_");
                 }
@@ -370,7 +372,7 @@ public class ExposedBridge {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
-                final String path = (String)param.args[0];
+                final String path = (String) param.args[0];
                 if (path.startsWith(BASE_DIR)) {
                     param.args[0] = path.replace(BASE_DIR, path.equals(BASE_DIR) ? dataDir : dataDir + "/exposed_");
                 }
@@ -386,7 +388,7 @@ public class ExposedBridge {
             return;
         }
 
-        if (!("com.hiwechart.translate".equals(applicationInfo.processName) || "com.tencent.mm".equals(applicationInfo.processName))){
+        if (!("com.hiwechart.translate".equals(applicationInfo.processName) || "com.tencent.mm".equals(applicationInfo.processName))) {
             return;
         }
 
@@ -457,6 +459,31 @@ public class ExposedBridge {
             deleteDir(tinker);
             deleteDir(tinker_temp);
             deleteDir(tinker_server);
+
+            final int mainProcessId = Process.myPid();
+            XposedHelpers.findAndHookMethod(Process.class, "killProcess", int.class, new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    super.beforeHookedMethod(param);
+                    int pid = (int) param.args[0];
+                    if (pid != mainProcessId) {
+                        return;
+                    }
+                    // try kill main process, find stack
+                    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+                    if (stackTrace == null) {
+                        return;
+                    }
+
+                    for (StackTraceElement stackTraceElement : stackTrace) {
+                        if (stackTraceElement.getClassName().contains("com.tencent.mm.app")) {
+                            XposedBridge.log("do not suicide..." + Arrays.toString(stackTrace));
+                            param.setResult(null);
+                            break;
+                        }
+                    }
+                }
+            });
         }
     }
 
@@ -478,6 +505,7 @@ public class ExposedBridge {
 
     /**
      * avoid from being searched by google.
+     *
      * @param base64
      * @return
      */
@@ -487,9 +515,10 @@ public class ExposedBridge {
 
     /**
      * write xposed property file to fake xposedinstaller
+     *
      * @param propertyFile the property file used by XposedInstaller
-     * @param version to fake version
-     * @param retry need retry, when retry, delete file and try again
+     * @param version      to fake version
+     * @param retry        need retry, when retry, delete file and try again
      */
     private static void writeXposedProperty(File propertyFile, String version, boolean retry) {
         Properties properties = new Properties();
@@ -528,6 +557,7 @@ public class ExposedBridge {
 
     /**
      * try read module config fules.
+     *
      * @return is need check module
      */
     private static boolean loadModuleConfig(String rootDir, String processName) {
