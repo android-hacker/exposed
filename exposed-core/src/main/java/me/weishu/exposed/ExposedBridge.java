@@ -1,8 +1,10 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
+import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -33,6 +35,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -268,8 +271,22 @@ public class ExposedBridge {
         if (ignoreHooks(method)) {
             return null;
         }
+
+        method = replaceForCHA(method);
+
         final XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, callback);
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
+    }
+
+    private static Member replaceForCHA(Member member) {
+
+        if (member.getDeclaringClass() == Application.class && member.getName().equals("attach")) {
+
+            Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
+            XposedBridge.log("replace ContextWrapper.attachBaseContext with Application.attach for CHA");
+            return m;
+        }
+        return member;
     }
 
     private static void initForXposedModule(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
