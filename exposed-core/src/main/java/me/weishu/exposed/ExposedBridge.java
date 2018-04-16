@@ -160,7 +160,7 @@ public class ExposedBridge {
     public static ModuleLoadResult loadModule(final String moduleApkPath, String moduleOdexDir, String moduleLibPath,
                                               final ApplicationInfo currentApplicationInfo, ClassLoader appClassLoader) {
 
-        if (isXposedInstaller(currentApplicationInfo)) {
+        if (filterApplication(currentApplicationInfo)) {
             return ModuleLoadResult.IGNORED;
         }
 
@@ -287,6 +287,24 @@ public class ExposedBridge {
 
     private static boolean isXposedInstaller(ApplicationInfo applicationInfo) {
         return XPOSED_INSTALL_PACKAGE.equals(applicationInfo.packageName);
+    }
+
+    private static boolean filterApplication(ApplicationInfo applicationInfo) {
+        if (applicationInfo == null) {
+            return true;
+        }
+
+        if (isXposedInstaller(applicationInfo)) {
+            return true;
+        }
+
+        if (decodeFromBase64("Y29tLnRlbmNlbnQubW06cHVzaA==").equalsIgnoreCase(applicationInfo.processName)) {
+            // com.tencent.mm:push
+            XposedBridge.log("ignore process for wechat push.");
+            return true;
+        }
+
+        return false;
     }
 
     private static void initForXposedInstaller(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
