@@ -145,6 +145,7 @@ public class ExposedBridge {
             yieldMode = true;
             XposedBridge.log("yield mode take effect");
         }
+        System.setProperty("vxp", "1");
     }
 
     private static boolean patchSystemClassLoader() {
