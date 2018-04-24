@@ -70,6 +70,8 @@ public class ExposedBridge {
     public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
+    final static String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
     private static boolean SYSTEM_CLASSLOADER_INJECT = false;
@@ -79,6 +81,9 @@ public class ExposedBridge {
     private static ClassLoader xposedClassLoader;
 
     private static Context appContext;
+    private static String currentPackage;
+    private static boolean yieldMode = false;
+
     private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
         @Override
         public void onLoadingModule(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
@@ -106,6 +111,8 @@ public class ExposedBridge {
         // SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
         XposedBridge.XPOSED_BRIDGE_VERSION = FAKE_XPOSED_VERSION;
         appContext = context;
+        initForPackage(context, applicationInfo);
+
         ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
         XSharedPreferences.setPackageBaseDirectory(new File(applicationInfo.dataDir).getParentFile());
@@ -114,6 +121,30 @@ public class ExposedBridge {
         initForXposedInstaller(context, applicationInfo, appClassLoader);
         initForWechat(context, applicationInfo, appClassLoader);
         initForQQ(context, applicationInfo, appClassLoader);
+    }
+
+    private static void initForPackage(Context context, ApplicationInfo applicationInfo) {
+        do {
+            if (applicationInfo == null) {
+                break;
+            }
+            String pkg = applicationInfo.packageName;
+            if (pkg == null) {
+                break;
+            }
+            currentPackage = pkg;
+
+        } while (false);
+
+        if (currentPackage == null) {
+            currentPackage = context.getPackageName();
+        }
+
+        String yieldModeConfig = System.getProperty("yieldMode");
+        if ("true".equals(yieldModeConfig)) {
+            yieldMode = true;
+            XposedBridge.log("yield mode take effect");
+        }
     }
 
     private static boolean patchSystemClassLoader() {
@@ -264,6 +295,22 @@ public class ExposedBridge {
     }
 
     private static boolean ignoreHooks(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        if (!yieldMode) {
+            return false;
+        }
+
+        String name = member.getDeclaringClass().getName();
+        if (WECHAT.equals(currentPackage)) {
+            if (name.contains("wcdb")) {
+                Log.i("mylog", "ignore hook for: " + name);
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -478,7 +525,6 @@ public class ExposedBridge {
         if (applicationInfo == null) {
             return;
         }
-        final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
 
         if (!WECHAT.equals(applicationInfo.packageName)) {
             return;
