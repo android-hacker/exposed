@@ -70,7 +70,7 @@ public class ExposedBridge {
     public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
-    final static String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+    private static final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
 
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
@@ -242,6 +242,10 @@ public class ExposedBridge {
                 if (moduleClassName.isEmpty() || moduleClassName.startsWith("#"))
                     continue;
 
+                if (filterModuleForApp(currentApplicationInfo, moduleClassName)) {
+                    XposedBridge.log("ignore module: " + moduleClassName + " for application: " + currentApplicationInfo.packageName);
+                    continue;
+                }
                 try {
                     log("  Loading class " + moduleClassName);
                     Class<?> moduleClass = mcl.loadClass(moduleClassName);
@@ -367,6 +371,32 @@ public class ExposedBridge {
             // com.tencent.mm:push
             XposedBridge.log("ignore process for wechat push.");
             return true;
+        }
+
+        return false;
+    }
+
+    private static boolean filterModuleForApp(ApplicationInfo applicationInfo, String moduleEntry) {
+        if (applicationInfo == null || applicationInfo.packageName == null) {
+            return false;
+        }
+
+        final String WECHAT_JUMP_HELPER = "com.emily.mmjumphelper.xposed.XposedMain";
+
+        if (WECHAT.equals(applicationInfo.packageName)) {
+            if (applicationInfo.processName.contains("appbrand")) {
+                // wechat app brand
+                if (WECHAT_JUMP_HELPER.equals(moduleEntry)) {
+                    // now only load module for appbrand.
+                    return false;
+                } else {
+                    return true;
+                }
+            } else {
+                if (WECHAT_JUMP_HELPER.equals(moduleEntry)) {
+                    return true;
+                }
+            }
         }
 
         return false;
