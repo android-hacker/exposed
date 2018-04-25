@@ -70,7 +70,7 @@ public class ExposedBridge {
     public static final String BASE_DIR = Build.VERSION.SDK_INT >= 24
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
-    private static final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+    final static String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
 
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
@@ -81,6 +81,9 @@ public class ExposedBridge {
     private static ClassLoader xposedClassLoader;
 
     private static Context appContext;
+    private static String currentPackage;
+    private static boolean yieldMode = false;
+
     private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
         @Override
         public void onLoadingModule(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
@@ -108,6 +111,8 @@ public class ExposedBridge {
         // SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
         XposedBridge.XPOSED_BRIDGE_VERSION = FAKE_XPOSED_VERSION;
         appContext = context;
+        initForPackage(context, applicationInfo);
+
         ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
         XSharedPreferences.setPackageBaseDirectory(new File(applicationInfo.dataDir).getParentFile());
@@ -116,6 +121,31 @@ public class ExposedBridge {
         initForXposedInstaller(context, applicationInfo, appClassLoader);
         initForWechat(context, applicationInfo, appClassLoader);
         initForQQ(context, applicationInfo, appClassLoader);
+    }
+
+    private static void initForPackage(Context context, ApplicationInfo applicationInfo) {
+        do {
+            if (applicationInfo == null) {
+                break;
+            }
+            String pkg = applicationInfo.packageName;
+            if (pkg == null) {
+                break;
+            }
+            currentPackage = pkg;
+
+        } while (false);
+
+        if (currentPackage == null) {
+            currentPackage = context.getPackageName();
+        }
+
+        String yieldModeConfig = System.getProperty("yieldMode");
+        if ("true".equals(yieldModeConfig)) {
+            yieldMode = true;
+            XposedBridge.log("yield mode take effect");
+        }
+        System.setProperty("vxp", "1");
     }
 
     private static boolean patchSystemClassLoader() {
@@ -212,10 +242,6 @@ public class ExposedBridge {
                 if (moduleClassName.isEmpty() || moduleClassName.startsWith("#"))
                     continue;
 
-                if (filterModuleForApp(currentApplicationInfo, moduleClassName)) {
-                    XposedBridge.log("ignore module: " + moduleClassName + " for application: " + currentApplicationInfo.packageName);
-                    continue;
-                }
                 try {
                     log("  Loading class " + moduleClassName);
                     Class<?> moduleClass = mcl.loadClass(moduleClassName);
@@ -270,6 +296,22 @@ public class ExposedBridge {
     }
 
     private static boolean ignoreHooks(Member member) {
+        if (member == null) {
+            return false;
+        }
+
+        if (!yieldMode) {
+            return false;
+        }
+
+        String name = member.getDeclaringClass().getName();
+        if (WECHAT.equals(currentPackage)) {
+            if (name.contains("wcdb")) {
+                Log.i("mylog", "ignore hook for: " + name);
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -325,32 +367,6 @@ public class ExposedBridge {
             // com.tencent.mm:push
             XposedBridge.log("ignore process for wechat push.");
             return true;
-        }
-
-        return false;
-    }
-
-    private static boolean filterModuleForApp(ApplicationInfo applicationInfo, String moduleEntry) {
-        if (applicationInfo == null || applicationInfo.packageName == null) {
-            return false;
-        }
-
-        final String WECHAT_JUMP_HELPER = "com.emily.mmjumphelper.xposed.XposedMain";
-
-        if (WECHAT.equals(applicationInfo.packageName)) {
-            if (applicationInfo.processName.contains("appbrand")) {
-                // wechat app brand
-                if (WECHAT_JUMP_HELPER.equals(moduleEntry)) {
-                    // now only load module for appbrand.
-                    return false;
-                } else {
-                    return true;
-                }
-            } else {
-                if (WECHAT_JUMP_HELPER.equals(moduleEntry)) {
-                    return true;
-                }
-            }
         }
 
         return false;
