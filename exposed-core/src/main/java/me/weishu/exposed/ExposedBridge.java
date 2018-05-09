@@ -71,6 +71,7 @@ public class ExposedBridge {
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
     private static final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+    private static final String QQ = decodeFromBase64("Y29tLnRlbmNlbnQubW9iaWxlcXE=");
 
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
@@ -304,14 +305,22 @@ public class ExposedBridge {
             return false;
         }
 
+        String name = member.getDeclaringClass().getName();
+        if (QQ.equals(currentPackage)) {
+            // TODO, we just ignore this hook to avoid crash, fix it when you figure out it. (getManager)
+            if (name.contains("QQAppInterface")) {
+                // Log.i("mylog", "ignore hook for: " + member);
+                return true;
+            }
+        }
+
         if (!yieldMode) {
             return false;
         }
 
-        String name = member.getDeclaringClass().getName();
         if (WECHAT.equals(currentPackage)) {
             if (name.contains("wcdb")) {
-                Log.i("mylog", "ignore hook for: " + name);
+                // Log.i("mylog", "ignore hook for: " + member);
                 return true;
             }
         }
@@ -348,7 +357,7 @@ public class ExposedBridge {
             inputStream = context.getAssets().open("xposed_init");
             System.setProperty("epic.force", "true");
         } catch (IOException e) {
-            log("initForXposedModule, ignore :" + applicationInfo.packageName);
+            log(applicationInfo.packageName + " is not a Xposed module");
         } finally {
             closeSliently(inputStream);
         }
