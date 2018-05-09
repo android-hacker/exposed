@@ -2,7 +2,6 @@ package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
-import android.app.Instrumentation;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -343,15 +342,14 @@ public class ExposedBridge {
     private static Member replaceForCHA(Member member) {
 
         if (member.getDeclaringClass() == Application.class && member.getName().equals("attach")) {
-
             Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
             XposedBridge.log("replace Application.attach with ContextWrapper.attachBaseContext for CHA");
             return m;
         }
 
         if (member.getDeclaringClass() == Application.class && member.getName().equals("onCreate")) {
-            Method m = XposedHelpers.findMethodExact(Instrumentation.class, "callApplicationOnCreate", Application.class);
-            XposedBridge.log("replace Application.onCreate with Instrumentation.callApplicationOnCreate for CHA");
+            Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
+            XposedBridge.log("replace Application.onCreate with ContextWrapper.attachBaseContext for CHA");
             return m;
         }
 
