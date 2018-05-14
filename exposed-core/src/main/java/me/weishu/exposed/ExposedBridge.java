@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -337,6 +338,12 @@ public class ExposedBridge {
 
         final XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, callback);
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
+    }
+
+    public static Object invokeOriginalMethod(Member method, Object thisObject, Object[] args)
+            throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
+        return DexposedBridge.invokeOriginalMethod(method, thisObject, args);
     }
 
     private static Member replaceForCHA(Member member) {
