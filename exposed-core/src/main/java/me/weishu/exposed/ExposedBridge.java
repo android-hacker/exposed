@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -71,6 +72,7 @@ public class ExposedBridge {
             ? "/data/user_de/0/de.robv.android.xposed.installer/" : BASE_DIR_LEGACY;
 
     private static final String WECHAT = decodeFromBase64("Y29tLnRlbmNlbnQubW0=");
+    private static final String QQ = decodeFromBase64("Y29tLnRlbmNlbnQubW9iaWxlcXE=");
 
     private static final int FAKE_XPOSED_VERSION = 91;
     private static final String VERSION_KEY = "version";
@@ -304,14 +306,22 @@ public class ExposedBridge {
             return false;
         }
 
+        String name = member.getDeclaringClass().getName();
+        if (QQ.equals(currentPackage)) {
+            // TODO, we just ignore this hook to avoid crash, fix it when you figure out it. (getManager)
+            if (name.contains("QQAppInterface")) {
+                // Log.i("mylog", "ignore hook for: " + member);
+                return true;
+            }
+        }
+
         if (!yieldMode) {
             return false;
         }
 
-        String name = member.getDeclaringClass().getName();
         if (WECHAT.equals(currentPackage)) {
             if (name.contains("wcdb")) {
-                Log.i("mylog", "ignore hook for: " + name);
+                // Log.i("mylog", "ignore hook for: " + member);
                 return true;
             }
         }
@@ -330,14 +340,26 @@ public class ExposedBridge {
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
     }
 
+    public static Object invokeOriginalMethod(Member method, Object thisObject, Object[] args)
+            throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
+        return DexposedBridge.invokeOriginalMethod(method, thisObject, args);
+    }
+
     private static Member replaceForCHA(Member member) {
 
         if (member.getDeclaringClass() == Application.class && member.getName().equals("attach")) {
-
             Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
-            XposedBridge.log("replace ContextWrapper.attachBaseContext with Application.attach for CHA");
+            XposedBridge.log("replace Application.attach with ContextWrapper.attachBaseContext for CHA");
             return m;
         }
+
+        if (member.getDeclaringClass() == Application.class && member.getName().equals("onCreate")) {
+            Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
+            XposedBridge.log("replace Application.onCreate with ContextWrapper.attachBaseContext for CHA");
+            return m;
+        }
+
         return member;
     }
 
@@ -348,7 +370,7 @@ public class ExposedBridge {
             inputStream = context.getAssets().open("xposed_init");
             System.setProperty("epic.force", "true");
         } catch (IOException e) {
-            log("initForXposedModule, ignore :" + applicationInfo.packageName);
+            log(applicationInfo.packageName + " is not a Xposed module");
         } finally {
             closeSliently(inputStream);
         }
