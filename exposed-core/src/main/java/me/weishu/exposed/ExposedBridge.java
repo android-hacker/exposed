@@ -286,10 +286,10 @@ public class ExposedBridge {
 
                     sModuleLoadListener.onModuleLoaded(moduleClassName, currentApplicationInfo, mcl);
 
-                    return ModuleLoadResult.SUCCESS;
                 } catch (Throwable t) {
                     log(t);
                 }
+                return ModuleLoadResult.SUCCESS;
             }
         } catch (IOException e) {
             log(e);
