@@ -1,5 +1,7 @@
 package de.robv.android.xposed;
 
+import android.util.Log;
+
 import java.lang.reflect.Member;
 
 /**
@@ -7,14 +9,16 @@ import java.lang.reflect.Member;
  */
 public class ExposedHelper {
 
+    private static final String TAG = "ExposedHelper";
+
     public static void initSeLinux(String processName) {
         SELinuxHelper.initOnce();
         SELinuxHelper.initForProcess(processName);
     }
 
     public static boolean isIXposedMod(Class<?> moduleClass) {
-        XposedBridge.log("module's classLoader : " + moduleClass.getClassLoader() + ", super: " + moduleClass.getSuperclass());
-        XposedBridge.log("IXposedMod's classLoader : " + IXposedMod.class.getClassLoader());
+        Log.d(TAG, "module's classLoader : " + moduleClass.getClassLoader() + ", super: " + moduleClass.getSuperclass());
+        Log.d(TAG, "IXposedMod's classLoader : " + IXposedMod.class.getClassLoader());
 
         return IXposedMod.class.isAssignableFrom(moduleClass);
     }
@@ -29,5 +33,13 @@ public class ExposedHelper {
         param.modulePath = modulePath;
         param.startsSystemServer = false;
         ((IXposedHookZygoteInit) moduleInstance).initZygote(param);
+    }
+
+    public static void beforeHookedMethod(XC_MethodHook methodHook, XC_MethodHook.MethodHookParam param) throws Throwable{
+        methodHook.beforeHookedMethod(param);
+    }
+
+    public static void afterHookedMethod(XC_MethodHook methodHook, XC_MethodHook.MethodHookParam param) throws Throwable{
+        methodHook.afterHookedMethod(param);
     }
 }

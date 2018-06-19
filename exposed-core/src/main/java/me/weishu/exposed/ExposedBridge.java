@@ -1,10 +1,8 @@
 package me.weishu.exposed;
 
 import android.annotation.SuppressLint;
-import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -36,7 +34,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -205,11 +202,11 @@ public class ExposedBridge {
         loadModuleConfig(rootDir, currentApplicationInfo.processName);
 
         if (lastModuleList.second == null || !lastModuleList.second.contains(moduleApkPath)) {
-            log("module:" + moduleApkPath + " is disabled, ignore");
+            Log.i(TAG, "module:" + moduleApkPath + " is disabled, ignore");
             return ModuleLoadResult.DISABLED;
         }
 
-        log("Loading modules from " + moduleApkPath + " for process: " + currentApplicationInfo.processName + " i s c: " + SYSTEM_CLASSLOADER_INJECT);
+        Log.i(TAG, "Loading modules from " + moduleApkPath + " for process: " + currentApplicationInfo.processName + " i s c: " + SYSTEM_CLASSLOADER_INJECT);
 
         if (!new File(moduleApkPath).exists()) {
             log(moduleApkPath + " does not exist");
@@ -249,7 +246,7 @@ public class ExposedBridge {
                     continue;
                 }
                 try {
-                    log("  Loading class " + moduleClassName);
+                    Log.i(TAG, "  Loading class " + moduleClassName);
                     Class<?> moduleClass = mcl.loadClass(moduleClassName);
 
                     sModuleLoadListener.onLoadingModule(moduleClassName, currentApplicationInfo, mcl);
@@ -334,7 +331,10 @@ public class ExposedBridge {
             return null;
         }
 
-        method = replaceForCHA(method);
+        XC_MethodHook.Unhook replaceUnhook = CHAHelper.replaceForCHA(method, callback);
+        if (replaceUnhook != null) {
+            return ExposedHelper.newUnHook(callback, replaceUnhook.getHookedMethod());
+        }
 
         final XC_MethodHook.Unhook unhook = DexposedBridge.hookMethod(method, callback);
         return ExposedHelper.newUnHook(callback, unhook.getHookedMethod());
@@ -346,22 +346,7 @@ public class ExposedBridge {
         return DexposedBridge.invokeOriginalMethod(method, thisObject, args);
     }
 
-    private static Member replaceForCHA(Member member) {
 
-        if (member.getDeclaringClass() == Application.class && member.getName().equals("attach")) {
-            Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
-            XposedBridge.log("replace Application.attach with ContextWrapper.attachBaseContext for CHA");
-            return m;
-        }
-
-        if (member.getDeclaringClass() == Application.class && member.getName().equals("onCreate")) {
-            Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
-            XposedBridge.log("replace Application.onCreate with ContextWrapper.attachBaseContext for CHA");
-            return m;
-        }
-
-        return member;
-    }
 
     private static void initForXposedModule(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
         InputStream inputStream = null;
@@ -370,7 +355,7 @@ public class ExposedBridge {
             inputStream = context.getAssets().open("xposed_init");
             System.setProperty("epic.force", "true");
         } catch (IOException e) {
-            log(applicationInfo.packageName + " is not a Xposed module");
+            Log.i(TAG, applicationInfo.packageName + " is not a Xposed module, do not init epic.force");
         } finally {
             closeSliently(inputStream);
         }
@@ -440,7 +425,7 @@ public class ExposedBridge {
             if (!fakeVersionString.equals(oldVersion)) {
                 writeXposedProperty(xposedProp, fakeVersionString, true);
             } else {
-                log("xposed version keep same, continue.");
+                Log.i(TAG, "xposed version keep same, continue.");
             }
         }
 
