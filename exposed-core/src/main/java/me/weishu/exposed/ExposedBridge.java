@@ -81,8 +81,8 @@ public class ExposedBridge {
 
     private static Context appContext;
     private static String currentPackage;
-    private static boolean yieldMode = false;
 
+    private volatile static boolean wcdbLoaded = false;
     private static ModuleLoadListener sModuleLoadListener = new ModuleLoadListener() {
         @Override
         public void onLoadingModule(String moduleClassName, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
@@ -139,11 +139,6 @@ public class ExposedBridge {
             currentPackage = context.getPackageName();
         }
 
-        String yieldModeConfig = System.getProperty("yieldMode");
-        if ("true".equals(yieldModeConfig)) {
-            yieldMode = true;
-            XposedBridge.log("yield mode take effect");
-        }
         System.setProperty("vxp", "1");
     }
 
@@ -312,24 +307,41 @@ public class ExposedBridge {
             }
         }
 
-        if (!yieldMode) {
-            return false;
+        return false;
+    }
+
+    private static void presetMethod(Member method) {
+        if (method == null) {
+            return;
         }
 
         if (WECHAT.equals(currentPackage)) {
-            if (name.contains("wcdb")) {
-                // Log.i("mylog", "ignore hook for: " + member);
-                return true;
+            Class<?> declaringClass = method.getDeclaringClass();
+            if (declaringClass.getName().contains("wcdb")) {
+                if (!wcdbLoaded) {
+                    ClassLoader loader = declaringClass.getClassLoader();
+                    Class<?> sqliteDataBaseClass = null;
+                    try {
+                        sqliteDataBaseClass = loader.loadClass("com.tencent.wcdb.database.SQLiteDatabase");
+                    } catch (ClassNotFoundException ignored) {
+                        XposedBridge.log("preload sqlite class failed!!!");
+                    }
+                    if (sqliteDataBaseClass == null) {
+                        return;
+                    }
+
+                    wcdbLoaded = true;
+                }
             }
         }
-
-        return false;
     }
 
     public static XC_MethodHook.Unhook hookMethod(Member method, XC_MethodHook callback) {
         if (ignoreHooks(method)) {
             return null;
         }
+
+        presetMethod(method);
 
         XC_MethodHook.Unhook replaceUnhook = CHAHelper.replaceForCHA(method, callback);
         if (replaceUnhook != null) {
