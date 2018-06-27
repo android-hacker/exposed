@@ -106,11 +106,11 @@ public class ExposedBridge {
         IGNORED
     }
 
-    public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader, int userId) {
+    public static void initOnce(Context context, ApplicationInfo applicationInfo, ClassLoader appClassLoader) {
         // SYSTEM_CLASSLOADER_INJECT = patchSystemClassLoader();
         XposedBridge.XPOSED_BRIDGE_VERSION = FAKE_XPOSED_VERSION;
         appContext = context;
-        initForPackage(context, applicationInfo, userId);
+        initForPackage(context, applicationInfo);
 
         ReLinker.loadLibrary(context, "epic");
         ExposedHelper.initSeLinux(applicationInfo.processName);
@@ -122,25 +122,15 @@ public class ExposedBridge {
         initForQQ(context, applicationInfo, appClassLoader);
     }
 
-    private static void initForPackage(Context context, ApplicationInfo applicationInfo, int userId) {
-        do {
-            if (applicationInfo == null) {
-                break;
-            }
-            String pkg = applicationInfo.packageName;
-            if (pkg == null) {
-                break;
-            }
-            currentPackage = pkg;
-
-        } while (false);
+    private static void initForPackage(Context context, ApplicationInfo applicationInfo) {
+        currentPackage = applicationInfo.packageName;
 
         if (currentPackage == null) {
             currentPackage = context.getPackageName();
         }
 
         System.setProperty("vxp", "1");
-        System.setProperty("vxp_user", String.valueOf(userId));
+        System.setProperty("vxp_user_dir", new File(applicationInfo.dataDir).getParent());
     }
 
     private static boolean patchSystemClassLoader() {

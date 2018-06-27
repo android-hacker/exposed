@@ -23,7 +23,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'me.weishu.exposed:exposed-xposedapi:0.4.3' // The Xposed API
+    compile 'me.weishu.exposed:exposed-xposedapi:0.4.4' // The Xposed API
     compile ('me.weishu:epic:0.5.9') { // The AOP Framework
         exclude group: 'me.weishu.exposed', module: 'exposed-xposedapi'
     }
@@ -31,7 +31,7 @@ dependencies {
 }
 
 group = 'me.weishu.exposed'
-version = '0.7.1'
+version = '0.7.2'
 
 apply plugin: 'com.novoda.bintray-release'
 
