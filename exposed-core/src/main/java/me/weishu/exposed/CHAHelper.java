@@ -60,13 +60,13 @@ public final class CHAHelper {
 
     static XC_MethodHook.Unhook replaceForCHA(Member member, final XC_MethodHook callback) {
 
-        if (member.getDeclaringClass() == Application.class && member.getName().equals("attach")) {
+        if (member.getDeclaringClass() == Application.class && "attach".equals(member.getName())) {
             XposedBridge.log("replace Application.attach with ContextWrapper.attachBaseContext for CHA");
             Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
             return DexposedBridge.hookMethod(m, new ApplicationHookProxy(callback));
         }
 
-        if (member.getDeclaringClass() == Application.class && member.getName().equals("onCreate")) {
+        if (member.getDeclaringClass() == Application.class && "onCreate".equals(member.getName())) {
             XposedBridge.log("replace Application.onCreate with ContextWrapper.attachBaseContext for CHA");
             Method m = XposedHelpers.findMethodExact(ContextWrapper.class, "attachBaseContext", Context.class);
             return DexposedBridge.hookMethod(m, new ApplicationHookProxy(callback));
