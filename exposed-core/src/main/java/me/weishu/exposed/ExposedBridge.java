@@ -286,13 +286,13 @@ public class ExposedBridge {
     }
 
     public static void loadModule(Context context) {
-        String dexPacName = "com.debby.spellbook";
+        String dexPacName = "com.debby.xposetest";
         try {
             ClassLoader originClassLoader = context.getClassLoader();
             ApplicationInfo info = context.getPackageManager().getApplicationInfo(dexPacName, 0);
             ClassLoader appClassLoaderWithXposed = getAppClassLoaderWithXposed(originClassLoader);
             ClassLoader mcl = new PathClassLoader(info.sourceDir, getXposedClassLoader(ExposedBridge.class.getClassLoader()));
-            Class<?> moduleClass = mcl.loadClass("com.debby.spellbook.WechatHook");
+            Class<?> moduleClass = mcl.loadClass("com.debby.xposetest.HookLogic");
             final Object moduleInstance = moduleClass.newInstance();
 
             if (moduleInstance instanceof IXposedHookLoadPackage) {
