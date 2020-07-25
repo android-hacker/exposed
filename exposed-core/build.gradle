@@ -32,14 +32,3 @@ dependencies {
 
 group = 'me.weishu.exposed'
 version = '0.8.0'
-
-apply plugin: 'com.novoda.bintray-release'
-
-publish {
-    userOrg = 'twsxtd'
-    groupId = "${project.group}"
-    artifactId = "${project.name}"
-    publishVersion = "${project.version}"
-    desc = 'Xposed Wrapper in non-root environment'
-    website = 'https://github.com/android-hacker/exposed'
-}
