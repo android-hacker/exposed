@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import dalvik.system.DexClassLoader;
+import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.DexposedBridge;
 import de.robv.android.xposed.ExposedHelper;
 import de.robv.android.xposed.IXposedHookInitPackageResources;
@@ -283,6 +284,37 @@ public class ExposedBridge {
         }
         return ModuleLoadResult.FAILED;
     }
+
+    public static void loadModule(Context context) {
+        String dexPacName = "com.debby.xposetest";
+        try {
+            ClassLoader originClassLoader = context.getClassLoader();
+            ApplicationInfo info = context.getPackageManager().getApplicationInfo(dexPacName, 0);
+            ClassLoader appClassLoaderWithXposed = getAppClassLoaderWithXposed(originClassLoader);
+            ClassLoader mcl = new PathClassLoader(info.sourceDir, getXposedClassLoader(ExposedBridge.class.getClassLoader()));
+            Class<?> moduleClass = mcl.loadClass("com.debby.xposetest.HookLogic");
+            final Object moduleInstance = moduleClass.newInstance();
+
+            if (moduleInstance instanceof IXposedHookLoadPackage) {
+                IXposedHookLoadPackage.Wrapper wrapper = new IXposedHookLoadPackage.Wrapper((IXposedHookLoadPackage) moduleInstance);
+                XposedBridge.CopyOnWriteSortedSet<XC_LoadPackage> xc_loadPackageCopyOnWriteSortedSet = new XposedBridge.CopyOnWriteSortedSet<>();
+                xc_loadPackageCopyOnWriteSortedSet.add(wrapper);
+                XC_LoadPackage.LoadPackageParam lpparam = new XC_LoadPackage.LoadPackageParam(xc_loadPackageCopyOnWriteSortedSet);
+                ApplicationInfo currentApplicationInfo = context.getApplicationInfo();
+
+                lpparam.packageName = currentApplicationInfo.packageName;
+                lpparam.processName = currentApplicationInfo.processName;
+                lpparam.classLoader = appClassLoaderWithXposed;
+                lpparam.appInfo = currentApplicationInfo;
+                lpparam.isFirstApplication = true;
+                XC_LoadPackage.callAll(lpparam);
+            }
+        } catch (Throwable t) {
+            Log.e("InitProvider", t.getMessage());
+            log(t);
+        }
+    }
+
 
     private static boolean ignoreHooks(Member member) {
         if (member == null) {
