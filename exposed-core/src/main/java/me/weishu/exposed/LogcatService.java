@@ -7,13 +7,12 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.taobao.android.dexposed.DexposedBridge;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 
 /**
@@ -57,7 +56,9 @@ public class LogcatService extends Service {
                     List<String> cmds = new ArrayList<String>();
                     cmds.add("sh");
                     cmds.add("-c");
-                    cmds.add("logcat -v time -s XposedStartupMarker:D Xposed:I appproc:I XposedInstaller:I art:F DexposedBridge:I >> " + path);
+                    cmds.add("logcat -v time -s XposedStartupMarker:D Xposed:I appproc:I XposedInstaller:I art:F DexposedBridge:I ExposedBridge:D " +
+                            "Runtime:I EpicNative:D VClientImpl:D VApp:I " +
+                            " >> " + path);
                     ProcessBuilder pb = new ProcessBuilder(cmds);
                     Process p = pb.start();
                     p.waitFor();
@@ -72,7 +73,7 @@ public class LogcatService extends Service {
         logcatThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                DexposedBridge.log(e);
+                XposedBridge.log(e);
                 // Do nothing else.
                 mReading = false;
             }
